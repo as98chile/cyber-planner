@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AS98 — Planificador Cyber 2026</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef0f3; font-size: 12px; color: #1a1a1a; }
+
+/* ── Summary Bar ── */
+#bar {
+  position: sticky; top: 0; z-index: 300;
+  background: #0d1b2a; color: #fff;
+  padding: 0 18px;
+  display: flex; flex-direction: column;
+  box-shadow: 0 3px 10px rgba(0,0,0,.4);
+}
+#bar-top {
+  display: flex; align-items: center; gap: 0; flex-wrap: nowrap;
+  padding: 7px 0 4px;
+  border-bottom: 1px solid #1e3047;
+}
+#bar-bot {
+  display: flex; align-items: center; gap: 0;
+  padding: 4px 0 6px;
+}
+.brand { font-size: 14px; font-weight: 800; color: #ffd700; letter-spacing: 1px; margin-right: 16px; white-space: nowrap; }
+.sep   { width: 1px; height: 28px; background: #2e4057; margin: 0 12px; flex-shrink: 0; }
+.kpi   { display: flex; flex-direction: column; align-items: center; min-width: 72px; }
+.kpi .lbl { font-size: 8.5px; text-transform: uppercase; color: #8899aa; letter-spacing: .4px; white-space: nowrap; }
+.kpi .val { font-size: 15px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.val.green  { color: #4caf50; }
+.val.blue   { color: #64b5f6; }
+.val.yellow { color: #ffd700; }
+.val.orange { color: #ff9800; }
+.val.red    { color: #ef5350; }
+.val.white  { color: #fff; }
+.val.gray   { color: #888; }
+.val.teal   { color: #4dd0e1; }
+.val.lime   { color: #aed581; }
+
+/* tier mini-breakdown in bar */
+.tier-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 10px 2px 8px; border-radius: 12px;
+  font-size: 10px; font-weight: 700; margin-right: 6px;
+  border: 1px solid transparent;
+}
+.tp-sd  { background: #1a237e; border-color: #5c6bc0; color: #c5cae9; }
+.tp-40  { background: #880e4f; border-color: #f06292; color: #fce4ec; }
+.tp-30  { background: #b71c1c; border-color: #ef5350; color: #ffcdd2; }
+.tp-20  { background: #bf360c; border-color: #ff7043; color: #ffe0b2; }
+.tp-15  { background: #0d47a1; border-color: #42a5f5; color: #bbdefb; }
+.tp-10  { background: #4a148c; border-color: #ab47bc; color: #e1bee7; }
+
+/* ── Filter bar ── */
+#fbar {
+  position: sticky; top: 82px; z-index: 200;
+  background: #fff; border-bottom: 2px solid #dde2e8;
+  padding: 7px 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+}
+#fbar label { font-size: 11px; font-weight: 600; color: #444; white-space: nowrap; }
+#fbar select, #fbar input[type="text"] {
+  padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 11px; background: #fff;
+}
+#search { width: 170px; }
+.btn { padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.btn-dark   { background: #0d1b2a; color: #fff; }
+.btn-green  { background: #2e7d32; color: #fff; }
+.btn-orange { background: #e65100; color: #fff; }
+.btn-teal   { background: #00695c; color: #fff; }
+.hint { font-size: 10px; color: #999; margin-left: auto; }
+
+/* ── Table wrapper ── */
+#wrap { overflow: auto; height: calc(100vh - 122px); }
+
+table { width: 100%; border-collapse: collapse; min-width: 1560px; }
+
+/* Section header rows inside thead */
+thead tr.sh th {
+  background: #37474f; color: #cfd8dc;
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; padding: 3px 6px;
+  border-right: 1px solid #455a64;
+}
+thead tr.sh th.cy-hdr  { background: #1a237e; color: #c5cae9; }
+thead tr.sh th.pr-hdr  { background: #212121; color: #bbb; }
+
+thead tr.ch th {
+  background: #1e2d3d; color: #d8e4f0;
+  padding: 6px 6px; text-align: center;
+  font-size: 10px; font-weight: 600; white-space: nowrap;
+  border-right: 1px solid #2e4057;
+  position: sticky; top: 0; z-index: 100;
+}
+thead tr.ch th.l { text-align: left; }
+
+/* Cyber column section bg */
+th.cy-col { background: #1a2a6e !important; }
+td.cy-col { background: rgba(26,35,126,.04); }
+
+/* Proj column section bg */
+th.pr-col { background: #1a1a1a !important; }
+
+tbody tr { border-bottom: 1px solid #e4e8ed; }
+tbody tr:hover td { filter: brightness(.95); }
+
+td { padding: 4px 5px; text-align: center; vertical-align: middle; white-space: nowrap; }
+td.l { text-align: left; }
+td.name { font-weight: 600; font-size: 11px; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+td.tipo { color: #666; font-size: 10px; text-transform: capitalize; }
+
+/* Row tints by dominant activity */
+tr.t40       { background: #fce4ec; }
+tr.t30       { background: #fff1f1; }
+tr.t20       { background: #fff8f0; }
+tr.t15       { background: #f0f7ff; }
+tr.t10       { background: #f6f1ff; }
+tr.tsd       { background: #f8f8ff; }
+tr.t0        { background: #fafafa; }
+
+/* Badges */
+.badge { display: inline-block; padding: 2px 7px; border-radius: 9px; font-size: 10px; font-weight: 700; }
+.b-sd  { background: #c5cae9; color: #283593; }
+.b-40  { background: #fce4ec; color: #880e4f; }
+.b-30  { background: #ffcdd2; color: #b71c1c; }
+.b-20  { background: #ffe0b2; color: #bf360c; }
+.b-15  { background: #bbdefb; color: #0d47a1; }
+.b-10  { background: #e1bee7; color: #4a148c; }
+.b-0   { background: #eeeeee; color: #777; }
+
+/* Inputs */
+select.tsel {
+  padding: 3px 4px; border: 1px solid #bbb; border-radius: 4px;
+  font-size: 11px; width: 96px; cursor: pointer; background: #fff;
+}
+input.sti {
+  width: 50px; padding: 3px 3px; border: 1px solid #bbb; border-radius: 4px;
+  font-size: 11px; text-align: center; background: #fff;
+}
+input.sti:disabled { background: #f0f0f0; color: #aaa; cursor: not-allowed; }
+input.sti:focus    { outline: none; border-color: #1976d2; }
+
+/* Values */
+.rev   { color: #1565c0; font-weight: 700; }
+.mgn   { color: #2e7d32; font-weight: 700; }
+.dash  { color: #ccc; }
+.nocost { color: #bbb; font-size: 10px; }
+.warn  { color: #e53935; font-weight: 700; }
+.low   { color: #e53935; }
+.mid   { color: #f57c00; }
+.good  { color: #2e7d32; }
+.small { font-size: 10px; color: #999; }
+
+/* Group header */
+tr.ghdr td {
+  background: #2c3e50; color: #ecf0f1;
+  font-size: 10px; font-weight: 700; padding: 4px 10px;
+  letter-spacing: .3px; text-align: left;
+}
+
+/* Footer */
+tfoot td {
+  background: #0d1b2a; color: #fff;
+  font-weight: 700; padding: 6px 5px;
+  border-top: 2px solid #ffd700;
+  font-size: 11px; text-align: center;
+}
+tfoot td.l { text-align: left; }
+</style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ── Summary Bar ── -->
+<div id="bar">
+  <div id="bar-top">
+    <span class="brand">AS98 ✦ CYBER 2026</span>
+    <div class="sep"></div>
+    <div class="kpi"><span class="lbl">Revenue Total</span><span class="val green" id="s-rev">$0</span></div>
+    <div class="kpi"><span class="lbl">Margen $</span><span class="val yellow" id="s-mgn">$0</span></div>
+    <div class="kpi"><span class="lbl">Margen %</span><span class="val orange" id="s-mp">0%</span></div>
+    <div class="kpi"><span class="lbl">Uds Totales</span><span class="val white" id="s-u">0</span></div>
+    <div class="sep"></div>
+    <div class="kpi"><span class="lbl">Objetivo</span><span class="val gray">$65.35M</span></div>
+    <div class="kpi"><span class="lbl">Gap</span><span class="val red" id="s-gap">—</span></div>
+    <div class="sep"></div>
+    <div style="display:flex;flex-direction:column;gap:3px;justify-content:center;font-size:9.5px;color:#aab;line-height:1.4">
+      <span>📦 Stock: <b style="color:#fff">26/05/2026</b></span>
+      <span>📊 Ventas: <b style="color:#fff">25/05/2026 20:00</b></span>
+      <span>✏️ Último dato: <b style="color:#ffd700" id="last-edit-ts">—</b></span>
+    </div>
+  </div>
+  <div id="bar-bot">
+    <span style="font-size:9px;color:#556;margin-right:10px;text-transform:uppercase;letter-spacing:.5px">Por etapa:</span>
+    <span id="s-sd"  class="tier-pill tp-sd">Sin Dcto — $0 | 0u</span>
+    <span id="s-40"  class="tier-pill tp-40">40% — $0 | 0u</span>
+    <span id="s-30"  class="tier-pill tp-30">30%Liq — $0 | 0u</span>
+    <span id="s-20"  class="tier-pill tp-20">20% — $0 | 0u</span>
+    <span id="s-15"  class="tier-pill tp-15">15% — $0 | 0u</span>
+    <span id="s-10"  class="tier-pill tp-10">10% — $0 | 0u</span>
+  </div>
+</div>
+
+<!-- ── Filter bar ── -->
+<div id="fbar">
+  <label>Buscar:</label>
+  <input type="text" id="search" placeholder="Nombre del producto..." oninput="applyFilters()">
+  <label>Tipo:</label>
+  <select id="ftipo" onchange="applyFilters()"><option value="">Todos</option></select>
+  <label>Tier:</label>
+  <select id="ftier" onchange="applyFilters()">
+    <option value="">Todos</option>
+    <option value="0">Sin asignar</option>
+    <option value="sd">Sin Descuento</option>
+    <option value="10">10%</option>
+    <option value="15">15%</option>
+    <option value="20">20%</option>
+    <option value="30">30% Liq</option>
+    <option value="40">40%</option>
+  </select>
+  <label>Stock mín:</label>
+  <input type="text" id="fstock" placeholder="ej: 5" style="width:55px" oninput="applyFilters()">
+  <button class="btn btn-orange" onclick="bulkST()">ST% masivo...</button>
+  <button class="btn btn-dark"   onclick="clearAll()">Limpiar todo</button>
+  <button class="btn btn-green"  onclick="exportCSV()">Exportar CSV</button>
+  <button class="btn btn-orange" onclick="exportXLSXCombined()">Excel Descuentos</button>
+  <span class="hint">
+    Cyber = 29 Mayo–3 Jun, todos los clientes
+  </span>
+</div>
+
+<!-- ── Table ── -->
+<div id="wrap">
+<table id="tbl">
+<thead>
+  <!-- Section labels -->
+  <tr class="sh">
+    <th colspan="12" style="text-align:left">PRODUCTO</th>
+    <th colspan="3" class="cy-hdr" style="text-align:center">TIER CYBER — 29 Mayo al 3 Jun (Todos los clientes)</th>
+    <th colspan="3" class="pr-hdr" style="text-align:center">PROYECCIÓN</th>
+  </tr>
+  <!-- Column labels -->
+  <tr class="ch">
+    <th class="l" style="min-width:195px">Producto</th>
+    <th class="l" style="min-width:75px">Tipo</th>
+    <th>Stock</th>
+    <th title="Ventas en unidades últimos 60 días">Uds 60d</th>
+    <th title="Ventas en unidades últimos 30 días">Uds 30d</th>
+    <th title="Ventas en unidades últimos 15 días">Uds 15d</th>
+    <th>Precio Púb.</th>
+    <th>Precio Neto</th>
+    <th>Costo Neto</th>
+    <th>Margen%</th>
+    <th>Max Dcto</th>
+    <th>Uds '25</th>
+    <th class="cy-col" style="min-width:100px">Tier</th>
+    <th class="cy-col">ST% Cyber</th>
+    <th class="cy-col">Uds Cyber</th>
+    <th class="pr-col" style="min-width:105px">Rev. Cyber</th>
+    <th class="pr-col" style="min-width:105px">Rev. Total</th>
+    <th class="pr-col">Margen%</th>
+  </tr>
+</thead>
+<tbody id="tbody"></tbody>
+<tfoot>
+  <tr>
+    <td class="l" colspan="2" id="f-lbl">TOTAL VISIBLE</td>
+    <td id="f-stk">—</td>
+    <td colspan="9"></td>
+    <td id="f-ucy">—</td>
+    <td></td>
+    <td id="f-ucy2">—</td>
+    <td id="f-rcy">—</td>
+    <td id="f-rt">—</td>
+    <td id="f-mp">—</td>
+  </tr>
+</tfoot>
+</table>
+</div>
+
+<script>
+const RAW = [{"title":"Cliff Legno","tipo":"Anteojos","skus":"H030011016041","stock":1,"precioPubl":89990,"precioNeto":75622,"costoNeto":37593,"margenPct":50.3,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Cliff Negro","tipo":"Anteojos","skus":"H030011016002","stock":1,"precioPubl":89990,"precioNeto":75622,"costoNeto":37593,"margenPct":50.3,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Dahlia Negro *UNISEX*","tipo":"Anteojos","skus":"H030021016002","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":37593,"margenPct":50.3,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Kirk Havana *UNISEX*","tipo":"Anteojos","skus":"H030071016325","stock":3,"precioPubl":89990,"precioNeto":75622,"costoNeto":34460,"margenPct":54.4,"maxDcto":7.6,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Kirk Negro *UNISEX*","tipo":"Anteojos","skus":"H030071016002","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":34460,"margenPct":54.4,"maxDcto":7.6,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Lars Havana*UNISEX*","tipo":"Anteojos","skus":"H030061016325","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":0,"margenPct":null,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Nicko Havana*UNISEX*","tipo":"Anteojos","skus":"H030051016325","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":34460,"margenPct":54.4,"maxDcto":7.6,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Rob Havana *UNISEX*","tipo":"Anteojos","skus":"H030081016325","stock":3,"precioPubl":79990,"precioNeto":67218,"costoNeto":0,"margenPct":null,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Ronnie Negro *UNISEX*","tipo":"Anteojos","skus":"H030031016002","stock":1,"precioPubl":89990,"precioNeto":75622,"costoNeto":37593,"margenPct":50.3,"maxDcto":0,"uds25":4,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Tate Translucido *UNISEX*","tipo":"Anteojos","skus":"H030131016203","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":0,"margenPct":null,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Taylor Negro *UNISEX*","tipo":"Anteojos","skus":"H030091016002","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":40726,"margenPct":46.1,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Taylor Oro *UNISEX*","tipo":"Anteojos","skus":"H030091016102","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":40726,"margenPct":46.1,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Till Havana","tipo":"Anteojos","skus":"H030041016325","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":0,"margenPct":null,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Till Negro","tipo":"Anteojos","skus":"H030041016002","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":34460,"margenPct":54.4,"maxDcto":7.6,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Etta Emerald","tipo":"Billetera","skus":"10102921026915","stock":1,"precioPubl":129990,"precioNeto":109235,"costoNeto":51400,"margenPct":52.9,"maxDcto":4.6,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"Etta Nero","tipo":"Billetera","skus":"10102921026002","stock":2,"precioPubl":129990,"precioNeto":109235,"costoNeto":51400,"margenPct":52.9,"maxDcto":4.6,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTA ADDISON FONDENTE","tipo":"Botas","skus":"B80310102000236, B80310102000237, B80310102000238, B80310102000239, B80310102000240","stock":21,"precioPubl":389990,"precioNeto":327723,"costoNeto":138121,"margenPct":57.9,"maxDcto":14.5,"uds25":2,"cyberTier":10,"cyberST":20,"uds60d":4,"uds30d":1,"uds15d":0},{"title":"BOTA ADDISON NEGRO","tipo":"Botas","skus":"B80310102000136, B80310102000137, B80310102000138, B80310102000139, B80310102000140","stock":13,"precioPubl":389990,"precioNeto":327723,"costoNeto":139950,"margenPct":57.3,"maxDcto":13.4,"uds25":0,"cyberTier":10,"cyberST":30,"uds60d":3,"uds30d":2,"uds15d":1},{"title":"BOTA AIR CAFE","tipo":"Botas","skus":"A52308101000735, A52308101000736, A52308101000737, A52308101000738, A52308101000739, A52308101000740, A52308101000741","stock":16,"precioPubl":289990,"precioNeto":243689,"costoNeto":106954,"margenPct":56.1,"maxDcto":11,"uds25":3,"cyberTier":"sd","cyberST":23,"uds60d":12,"uds30d":6,"uds15d":2},{"title":"BOTA AIR NEGRO","tipo":"Botas","skus":"A52308101600236, A52308101600237, A52308101600238, A52308101600239, A52308101600240","stock":37,"precioPubl":289990,"precioNeto":243689,"costoNeto":105347,"margenPct":56.8,"maxDcto":12.3,"uds25":5,"cyberTier":10,"cyberST":10,"uds60d":19,"uds30d":9,"uds15d":6},{"title":"BOTA AXEL NEGRO","tipo":"Botas","skus":"545310101600235, 545310101600236, 545310101600237, 545310101600238, 545310101600239, 545310101600240, 545310101600241","stock":6,"precioPubl":319990,"precioNeto":268899,"costoNeto":121745,"margenPct":54.7,"maxDcto":8.2,"uds25":10,"cyberTier":"sd","cyberST":50,"uds60d":8,"uds30d":2,"uds15d":2},{"title":"BOTA BASKA EBANO","tipo":"Botas","skus":"B80336201614436, B80336201614437, B80336201614438, B80336201614439, B80336201614440","stock":17,"precioPubl":409990,"precioNeto":344529,"costoNeto":141088,"margenPct":59,"maxDcto":16.9,"uds25":0,"cyberTier":10,"cyberST":17,"uds60d":2,"uds30d":1,"uds15d":1},{"title":"BOTA BASKA NEGRO","tipo":"Botas","skus":"B80336201600236, B80336201600237, B80336201600238, B80336201600239, B80336201600240","stock":13,"precioPubl":409990,"precioNeto":344529,"costoNeto":141088,"margenPct":59,"maxDcto":16.9,"uds25":0,"cyberTier":10,"cyberST":17,"uds60d":6,"uds30d":3,"uds15d":3},{"title":"BOTA BUCA CAFE","tipo":"Botas","skus":"717356502000336, 717356502000337, 717356502000338, 717356502000339, 717356502000340, 717356502000341","stock":12,"precioPubl":389990,"precioNeto":327723,"costoNeto":150238,"margenPct":54.2,"maxDcto":7,"uds25":0,"cyberTier":"sd","cyberST":12,"uds60d":4,"uds30d":2,"uds15d":2},{"title":"BOTA BUCA FONDENTE","tipo":"Botas","skus":"717356602000135, 717356602000136, 717356602000137, 717356602000138, 717356602000139, 717356602000140","stock":29,"precioPubl":389990,"precioNeto":327723,"costoNeto":153888,"margenPct":53,"maxDcto":4.8,"uds25":2,"cyberTier":10,"cyberST":17,"uds60d":9,"uds30d":6,"uds15d":4},{"title":"BOTA BUCA NEGRO","tipo":"Botas","skus":"717356502600236, 717356502600237, 717356502600238, 717356502600239, 717356502600240","stock":18,"precioPubl":389990,"precioNeto":327723,"costoNeto":156918,"margenPct":52.1,"maxDcto":2.9,"uds25":3,"cyberTier":10,"cyberST":19,"uds60d":14,"uds30d":6,"uds15d":1},{"title":"BOTA CAMBRIA EBANO","tipo":"Botas","skus":"B843011026144I2536, B843011026144I2537, B843011026144I2538, B843011026144I2539, B843011026144I2540","stock":11,"precioPubl":389990,"precioNeto":327723,"costoNeto":136537,"margenPct":58.3,"maxDcto":15.5,"uds25":0,"cyberTier":"sd","cyberST":43,"uds60d":10,"uds30d":6,"uds15d":3},{"title":"BOTA CAMBRIA NEGRO","tipo":"Botas","skus":"B84301101600236, B84301101600237, B84301101600238, B84301101600239, B84301101600240","stock":4,"precioPubl":389990,"precioNeto":327723,"costoNeto":136537,"margenPct":58.3,"maxDcto":15.5,"uds25":0,"cyberTier":"sd","cyberST":50,"uds60d":10,"uds30d":3,"uds15d":0},{"title":"BOTA DC DAINO","tipo":"Botas","skus":"256301101000336, 256301101000337, 256301101000338, 256301101000339, 256301101000340","stock":14,"precioPubl":319990,"precioNeto":268899,"costoNeto":116651,"margenPct":56.6,"maxDcto":12,"uds25":1,"cyberTier":"sd","cyberST":15,"uds60d":7,"uds30d":2,"uds15d":1},{"title":"BOTA DC EBANO","tipo":"Botas","skus":"256301101001436, 256301101001437, 256301101001438, 256301101001439, 256301101001440","stock":12,"precioPubl":319990,"precioNeto":268899,"costoNeto":119470,"margenPct":55.6,"maxDcto":9.9,"uds25":0,"cyberTier":10,"cyberST":17,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTA DC NEGRO","tipo":"Botas","skus":"256301101600236, 256301101600237, 256301101600238, 256301101600239, 256301101600240","stock":14,"precioPubl":319990,"precioNeto":268899,"costoNeto":117356,"margenPct":56.4,"maxDcto":11.5,"uds25":0,"cyberTier":10,"cyberST":17,"uds60d":5,"uds30d":2,"uds15d":1},{"title":"BOTA DIRE EBANO","tipo":"Botas","skus":"A89307501614436, A89307501614437, A89307501614438, A89307501614439, A89307501614440","stock":15,"precioPubl":369990,"precioNeto":310916,"costoNeto":138812,"margenPct":55.4,"maxDcto":9.4,"uds25":0,"cyberTier":10,"cyberST":15,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"BOTA DIRE NEGRO","tipo":"Botas","skus":"A89307501600236, A89307501600237, A89307501600238, A89307501600239, A89307501600240","stock":20,"precioPubl":369990,"precioNeto":310916,"costoNeto":133561,"margenPct":57,"maxDcto":12.9,"uds25":3,"cyberTier":10,"cyberST":20,"uds60d":3,"uds30d":1,"uds15d":1},{"title":"BOTA DUBLIN NEGRO (MJUS by AS98)","tipo":"Botas","skus":"T82301103600236, T82301103600237, T82301103600238, T82301103600239, T82301103600240","stock":20,"precioPubl":209990,"precioNeto":176462,"costoNeto":71189,"margenPct":59.7,"maxDcto":18.2,"uds25":0,"cyberTier":10,"cyberST":18,"uds60d":3,"uds30d":2,"uds15d":0},{"title":"BOTA DUBLIN TDM (MJUS by AS98)","tipo":"Botas","skus":"T82301103625336, T82301103625337, T82301103625338, T82301103625339, T82301103625340","stock":7,"precioPubl":209990,"precioNeto":176462,"costoNeto":68113,"margenPct":61.4,"maxDcto":21.7,"uds25":0,"cyberTier":"sd","cyberST":30,"uds60d":9,"uds30d":7,"uds15d":5},{"title":"BOTA MARKS CAFÉ (MJUS by AS98)","tipo":"Botas","skus":"L91203201611636, L91203201611637, L91203201611638, L91203201611639, L91203201611640","stock":16,"precioPubl":219990,"precioNeto":184866,"costoNeto":73886,"margenPct":60,"maxDcto":18.9,"uds25":0,"cyberTier":20,"cyberST":16,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTA RIO CAFE (MJUS by AS98)","tipo":"Botas","skus":"L39303101611636, L39303101611637, L39303101611638, L39303101611639, L39303101611640","stock":14,"precioPubl":239990,"precioNeto":201672,"costoNeto":77222,"margenPct":61.7,"maxDcto":22.3,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":10,"uds30d":4,"uds15d":3},{"title":"BOTA RIO NEGRO (MJUS by AS98)","tipo":"Botas","skus":"L39303101600236, L39303101600237, L39303101600238, L39303101600239, L39303101600240","stock":27,"precioPubl":239990,"precioNeto":201672,"costoNeto":73011,"margenPct":63.8,"maxDcto":26.6,"uds25":0,"cyberTier":10,"cyberST":15,"uds60d":2,"uds30d":1,"uds15d":1},{"title":"BOTA UMBRIA NERO (MJUS by AS98)","tipo":"Botas","skus":"L39304101600236, L39304101600237, L39304101600238, L39304101600239, L39304101600240","stock":20,"precioPubl":249990,"precioNeto":210076,"costoNeto":90048,"margenPct":57.1,"maxDcto":13.1,"uds25":0,"cyberTier":20,"cyberST":20,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTA VAN METAL","tipo":"Botas","skus":"B52308101000135, B52308101000136, B52308101000137, B52308101000138, B52308101000139, B52308101000140","stock":3,"precioPubl":329990,"precioNeto":277303,"costoNeto":117729,"margenPct":57.5,"maxDcto":13.9,"uds25":1,"cyberTier":40,"cyberST":100,"uds60d":4,"uds30d":1,"uds15d":0},{"title":"BOTA WESTERN NEGRO","tipo":"Botas","skus":"B842152010001I2536, B842152010001I2537, B842152010001I2538, B842152010001I2539, B842152010001I2540","stock":10,"precioPubl":349990,"precioNeto":294109,"costoNeto":119470,"margenPct":59.4,"maxDcto":17.6,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":6,"uds30d":3,"uds15d":1},{"title":"BOTA WESTERN PRUNE","tipo":"Botas","skus":"B842151016565I2536, B842151016565I2537, B842151016565I2538, B842151016565I2539, B842151016565I2540","stock":12,"precioPubl":349990,"precioNeto":294109,"costoNeto":122883,"margenPct":58.2,"maxDcto":15.3,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":3,"uds30d":0,"uds15d":0},{"title":"BOTA ZADAR EBANO","tipo":"Botas","skus":"C14305101614436, C14305101614437, C14305101614438, C14305101614439, C14305101614440","stock":14,"precioPubl":379990,"precioNeto":319319,"costoNeto":126296,"margenPct":60.4,"maxDcto":19.8,"uds25":0,"cyberTier":10,"cyberST":16,"uds60d":2,"uds30d":1,"uds15d":1},{"title":"BOTA ZADAR MADERA","tipo":"Botas","skus":"C14305101658036, C14305101658037, C14305101658038, C14305101658039, C14305101658040","stock":11,"precioPubl":379990,"precioNeto":319319,"costoNeto":126296,"margenPct":60.4,"maxDcto":19.8,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":5,"uds30d":3,"uds15d":0},{"title":"BOTA ZADAR NEGRO","tipo":"Botas","skus":"C14305101600236, C14305101600237, C14305101600238, C14305101600239, C14305101600240","stock":13,"precioPubl":379990,"precioNeto":319319,"costoNeto":126296,"margenPct":60.4,"maxDcto":19.8,"uds25":0,"cyberTier":10,"cyberST":10,"uds60d":3,"uds30d":1,"uds15d":1},{"title":"BOTIN MARKS COCO (MJUS by AS98)","tipo":"Botas","skus":"L91203201653636, L91203201653637, L91203201653638, L91203201653639, L91203201653640","stock":14,"precioPubl":219990,"precioNeto":184866,"costoNeto":71577,"margenPct":61.3,"maxDcto":21.5,"uds25":0,"cyberTier":20,"cyberST":20,"uds60d":2,"uds30d":1,"uds15d":1},{"title":"BOTIN ALISA NEGRO","tipo":"Botines","skus":"B80216101600235, B80216101600236, B80216101600237, B80216101600238, B80216101600239, B80216101600240","stock":2,"precioPubl":239990,"precioNeto":201672,"costoNeto":76671,"margenPct":62,"maxDcto":22.9,"uds25":0,"cyberTier":30,"cyberST":100,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN ALIVE CAFE OSCURO","tipo":"Botines","skus":"A29201101000535, A29201101000536, A29201101000537, A29201101000538, A29201101000539, A29201101000540","stock":1,"precioPubl":219990,"precioNeto":184866,"costoNeto":67695,"margenPct":63.4,"maxDcto":25.7,"uds25":1,"cyberTier":10,"cyberST":10,"uds60d":3,"uds30d":1,"uds15d":0},{"title":"BOTIN ALIVE NEGRO","tipo":"Botines","skus":"A29201101600235, A29201101600236, A29201101600237, A29201101600238, A29201101600239, A29201101600240, A29201101600241","stock":14,"precioPubl":219990,"precioNeto":184866,"costoNeto":68125,"margenPct":63.1,"maxDcto":25.3,"uds25":1,"cyberTier":10,"cyberST":10,"uds60d":7,"uds30d":2,"uds15d":1},{"title":"BOTIN ALLY NEGRO","tipo":"Botines","skus":"B80215101600236, B80215101600237, B80215101600238, B80215101600239, B80215101600240, B80215101600241","stock":6,"precioPubl":249990,"precioNeto":210076,"costoNeto":87414,"margenPct":58.4,"maxDcto":15.6,"uds25":0,"cyberTier":20,"cyberST":40,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN ARCH CARTÓN","tipo":"Botines","skus":"B80227203000436, B80227203000437, B80227203000438, B80227203000439, B80227203000440","stock":6,"precioPubl":339990,"precioNeto":285706,"costoNeto":130848,"margenPct":54.2,"maxDcto":7.1,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":5,"uds30d":3,"uds15d":1},{"title":"BOTIN ARCH FONDENTE","tipo":"Botines","skus":"B80227202000236, B80227202000237, B80227202000238, B80227202000239, B80227202000240","stock":9,"precioPubl":339990,"precioNeto":285706,"costoNeto":131074,"margenPct":54.1,"maxDcto":6.9,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":10,"uds30d":4,"uds15d":2},{"title":"BOTIN ARCH NEGRO","tipo":"Botines","skus":"B80227202600236, B80227202600237, B80227202600238, B80227202600239, B80227202600240","stock":24,"precioPubl":339990,"precioNeto":285706,"costoNeto":133106,"margenPct":53.4,"maxDcto":5.5,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN ARLEY ARGENTO","tipo":"Botines","skus":"B80203201000136, B80203201000137, B80203201000138, B80203201000139, B80203201000140","stock":1,"precioPubl":289990,"precioNeto":243689,"costoNeto":98157,"margenPct":59.7,"maxDcto":18.3,"uds25":2,"cyberTier":40,"cyberST":100,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"BOTIN ATENAS NEGRO (MJUS by AS98)","tipo":"Botines","skus":"L48201101600236, L48201101600237, L48201101600238, L48201101600239, L48201101600240","stock":14,"precioPubl":159990,"precioNeto":134445,"costoNeto":56115,"margenPct":58.3,"maxDcto":15.3,"uds25":3,"cyberTier":"sd","cyberST":30,"uds60d":7,"uds30d":3,"uds15d":3},{"title":"BOTIN ATTALA ICE","tipo":"Botines","skus":"B80204301633636, B80204301633637, B80204301633638, B80204301633639, B80204301633640, B80204301633641","stock":1,"precioPubl":299990,"precioNeto":252092,"costoNeto":104264,"margenPct":58.6,"maxDcto":16.1,"uds25":0,"cyberTier":40,"cyberST":100,"uds60d":3,"uds30d":1,"uds15d":0},{"title":"BOTIN ATTALA OTTONE","tipo":"Botines","skus":"B80204201615536, B80204201615537, B80204201615538, B80204201615539, B80204201615540","stock":6,"precioPubl":299990,"precioNeto":252092,"costoNeto":107354,"margenPct":57.4,"maxDcto":13.6,"uds25":0,"cyberTier":40,"cyberST":20,"uds60d":2,"uds30d":0,"uds15d":0},{"title":"BOTIN AZUSA ARGENTO","tipo":"Botines","skus":"B80206201610136, B80206201610137, B80206201610138, B80206201610139, B80206201610140","stock":1,"precioPubl":299990,"precioNeto":252092,"costoNeto":104264,"margenPct":58.6,"maxDcto":16.1,"uds25":0,"cyberTier":30,"cyberST":100,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN BADEN ICE","tipo":"Botines","skus":"B82116101633636, B82116101633637, B82116101633638, B82116101633639, B82116101633640","stock":12,"precioPubl":209990,"precioNeto":176462,"costoNeto":72820,"margenPct":58.7,"maxDcto":16.3,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN BERNA BASALTO","tipo":"Botines","skus":"A94131201657936, A94131201657937, A94131201657938, A94131201657939, A94131201657940","stock":13,"precioPubl":219990,"precioNeto":184866,"costoNeto":69406,"margenPct":62.5,"maxDcto":23.8,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"BOTIN BERNA MADERA","tipo":"Botines","skus":"A94131101658036, A94131101658037, A94131101658038, A94131101658039, A94131101658040","stock":11,"precioPubl":219990,"precioNeto":184866,"costoNeto":72820,"margenPct":60.6,"maxDcto":20.1,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":3,"uds30d":2,"uds15d":2},{"title":"BOTIN BILICE EBANO","tipo":"Botines","skus":"C13106201614436, C13106201614437, C13106201614438, C13106201614439, C13106201614440","stock":11,"precioPubl":199990,"precioNeto":168059,"costoNeto":70544,"margenPct":58,"maxDcto":14.9,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":3,"uds30d":0,"uds15d":0},{"title":"BOTIN BILICE TEAL","tipo":"Botines","skus":"C13106201658236, C13106201658237, C13106201658238, C13106201658239, C13106201658240","stock":10,"precioPubl":199990,"precioNeto":168059,"costoNeto":70544,"margenPct":58,"maxDcto":14.9,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":2,"uds30d":1,"uds15d":1},{"title":"BOTIN BLUR GRIS","tipo":"Botines","skus":"259216302000335, 259216302000336, 259216302000337, 259216302000338, 259216302000339, 259216302000340","stock":3,"precioPubl":329990,"precioNeto":277303,"costoNeto":110246,"margenPct":60.2,"maxDcto":19.4,"uds25":2,"cyberTier":10,"cyberST":100,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN BLUR JUNGLE","tipo":"Botines","skus":"259216302001135, 259216302001136, 259216302001137, 259216302001138, 259216302001139, 259216302001140, 259216302001141","stock":6,"precioPubl":329990,"precioNeto":277303,"costoNeto":120673,"margenPct":56.5,"maxDcto":11.7,"uds25":1,"cyberTier":10,"cyberST":50,"uds60d":2,"uds30d":1,"uds15d":0},{"title":"BOTIN BLUR NEGRO","tipo":"Botines","skus":"259216302600235, 259216302600236, 259216302600237, 259216302600238, 259216302600239, 259216302600240, 259216302600241","stock":47,"precioPubl":329990,"precioNeto":277303,"costoNeto":132788,"margenPct":52.1,"maxDcto":2.9,"uds25":5,"cyberTier":"sd","cyberST":10,"uds60d":20,"uds30d":12,"uds15d":5},{"title":"BOTIN BOB CASTAÑA","tipo":"Botines","skus":"U81202101622541, U81202101622542, U81202101622543, U81202101622544, U81202101622545, U81202101622546","stock":5,"precioPubl":199990,"precioNeto":168059,"costoNeto":76000,"margenPct":54.8,"maxDcto":8.3,"uds25":0,"cyberTier":10,"cyberST":29,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN CARLSON ICE","tipo":"Botines","skus":"B84205301633636, B84205301633637, B84205301633638, B84205301633639, B84205301633640","stock":24,"precioPubl":279990,"precioNeto":235286,"costoNeto":93179,"margenPct":60.4,"maxDcto":19.7,"uds25":1,"cyberTier":10,"cyberST":20,"uds60d":8,"uds30d":0,"uds15d":0},{"title":"BOTIN CHELSEA FANGO","tipo":"Botines","skus":"U81201201613342, U81201201613343, U81201201613344, U81201201613345, U81201201613346","stock":3,"precioPubl":209990,"precioNeto":176462,"costoNeto":82000,"margenPct":53.5,"maxDcto":5.7,"uds25":1,"cyberTier":10,"cyberST":50,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN CHELSEA RANGER","tipo":"Botines","skus":"U81201201651642, U81201201651643, U81201201651644, U81201201651646, U81201201651645","stock":4,"precioPubl":209990,"precioNeto":176462,"costoNeto":82000,"margenPct":53.5,"maxDcto":5.7,"uds25":0,"cyberTier":10,"cyberST":10,"uds60d":2,"uds30d":1,"uds15d":1},{"title":"BOTIN CLASH FONDENTE","tipo":"Botines","skus":"4012011801650742, 4012011801650743, 4012011801650744, 4012011801650745","stock":8,"precioPubl":219990,"precioNeto":184866,"costoNeto":76000,"margenPct":58.9,"maxDcto":16.6,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN CLASH NEGRO","tipo":"Botines","skus":"4012011801600241, 4012011801600242, 4012011801600243, 4012011801600244, 4012011801600245","stock":11,"precioPubl":219990,"precioNeto":184866,"costoNeto":76000,"margenPct":58.9,"maxDcto":16.6,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN COBAIN EBANO","tipo":"Botines","skus":"B80233101614436, B80233101614437, B80233101614438, B80233101614439, B80233101614440","stock":12,"precioPubl":209990,"precioNeto":176462,"costoNeto":69653,"margenPct":60.5,"maxDcto":19.9,"uds25":0,"cyberTier":20,"cyberST":20,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"BOTIN COUNTRY ARGENTO","tipo":"Botines","skus":"B84202101000135, B84202101000136, B84202101000137, B84202101000138, B84202101000139, B84202101000140","stock":4,"precioPubl":299990,"precioNeto":252092,"costoNeto":105453,"margenPct":58.2,"maxDcto":15.1,"uds25":1,"cyberTier":10,"cyberST":50,"uds60d":1,"uds30d":1,"uds15d":1},{"title":"BOTIN COUNTRY OTTONE","tipo":"Botines","skus":"B84202201000136, B84202201000137, B84202201000138, B84202201000139, B84202201000140","stock":13,"precioPubl":299990,"precioNeto":252092,"costoNeto":102366,"margenPct":59.4,"maxDcto":17.6,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN COUNTRY SMOKE","tipo":"Botines","skus":"B84202301622335, B84202301622336, B84202301622337, B84202301622338, B84202301622339, B84202301622340","stock":1,"precioPubl":299990,"precioNeto":252092,"costoNeto":97600,"margenPct":61.3,"maxDcto":21.5,"uds25":0,"cyberTier":10,"cyberST":50,"uds60d":1,"uds30d":1,"uds15d":1},{"title":"BOTIN CURE EBANO","tipo":"Botines","skus":"548214301614436, 548214301614437, 548214301614438, 548214301614439, 548214301614440","stock":7,"precioPubl":229990,"precioNeto":193269,"costoNeto":85335,"margenPct":55.8,"maxDcto":10.4,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":6,"uds30d":1,"uds15d":0},{"title":"BOTIN CURE NEGRO","tipo":"Botines","skus":"548214301600235, 548214301600236, 548214301600237, 548214301600238, 548214301600239, 548214301600240","stock":15,"precioPubl":229990,"precioNeto":193269,"costoNeto":85335,"margenPct":55.8,"maxDcto":10.4,"uds25":1,"cyberTier":"sd","cyberST":10,"uds60d":11,"uds30d":6,"uds15d":1},{"title":"BOTIN DARCY NEGRO","tipo":"Botines","skus":"B51218101600236, B51218101600237, B51218101600238, B51218101600239, B51218101600240","stock":1,"precioPubl":233990,"precioNeto":196630,"costoNeto":85558,"margenPct":56.5,"maxDcto":11.7,"uds25":8,"cyberTier":30,"cyberST":100,"uds60d":4,"uds30d":0,"uds15d":0},{"title":"BOTIN DARREL FONDENTE","tipo":"Botines","skus":"B51208101650736, B51208101650737, B51208101650738, B51208101650739, B51208101650740","stock":2,"precioPubl":289990,"precioNeto":243689,"costoNeto":72873,"margenPct":70.1,"maxDcto":39.3,"uds25":1,"cyberTier":30,"cyberST":100,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN DYLAN FONDENTE","tipo":"Botines","skus":"259213201650735, 259213201650736, 259213201650737, 259213201650738, 259213201650739, 259213201650740","stock":1,"precioPubl":299990,"precioNeto":252092,"costoNeto":98000,"margenPct":61.1,"maxDcto":21.1,"uds25":0,"cyberTier":30,"cyberST":100,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN DYLAN NEGRO","tipo":"Botines","skus":"259213102600236, 259213102600237, 259213102600238, 259213102600239, 259213102600240","stock":3,"precioPubl":299990,"precioNeto":252092,"costoNeto":98000,"margenPct":61.1,"maxDcto":21.1,"uds25":0,"cyberTier":30,"cyberST":40,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN EASY ARGENTO","tipo":"Botines","skus":"A89209501000136, A89209501000137, A89209501000138, A89209501000139, A89209501000140","stock":1,"precioPubl":279990,"precioNeto":235286,"costoNeto":97127,"margenPct":58.7,"maxDcto":16.3,"uds25":4,"cyberTier":30,"cyberST":100,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"BOTIN EASY EBANO","tipo":"Botines","skus":"A89209101614436, A89209101614437, A89209101614438, A89209101614439, A89209101614440","stock":12,"precioPubl":259990,"precioNeto":218479,"costoNeto":97851,"margenPct":55.2,"maxDcto":9.2,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":9,"uds30d":4,"uds15d":1},{"title":"BOTIN EASY FANGO","tipo":"Botines","skus":"A89209101613335, A89209101613336, A89209101613337, A89209101613338, A89209101613339, A89209101613340","stock":3,"precioPubl":259990,"precioNeto":218479,"costoNeto":85000,"margenPct":61.1,"maxDcto":21.1,"uds25":0,"cyberTier":10,"cyberST":40,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN EASY NEGRO","tipo":"Botines","skus":"A89209101600235, A89209101600236, A89209101600237, A89209101600238, A89209101600239, A89209101600240","stock":22,"precioPubl":259990,"precioNeto":218479,"costoNeto":97855,"margenPct":55.2,"maxDcto":9.1,"uds25":4,"cyberTier":"sd","cyberST":15,"uds60d":13,"uds30d":5,"uds15d":1},{"title":"BOTIN EASY OTTONE","tipo":"Botines","skus":"A89209501000236, A89209501000237, A89209501000238, A89209501000239, A89209501000240","stock":3,"precioPubl":279990,"precioNeto":235286,"costoNeto":97127,"margenPct":58.7,"maxDcto":16.3,"uds25":0,"cyberTier":30,"cyberST":80,"uds60d":2,"uds30d":1,"uds15d":0},{"title":"BOTIN GEES OTTONE","tipo":"Botines","skus":"A94127201615535, A94127201615536, A94127201615537, A94127201615538, A94127201615539, A94127201615540","stock":2,"precioPubl":219990,"precioNeto":184866,"costoNeto":72800,"margenPct":60.6,"maxDcto":20.1,"uds25":0,"cyberTier":30,"cyberST":40,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN GESS NEGRO","tipo":"Botines","skus":"A94127101600235, A94127101600236, A94127101600237, A94127101600238, A94127101600239, A94127101600240","stock":1,"precioPubl":219990,"precioNeto":184866,"costoNeto":69600,"margenPct":62.4,"maxDcto":23.6,"uds25":0,"cyberTier":30,"cyberST":100,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN GINEBRA ICE","tipo":"Botines","skus":"A94132101633636, A94132101633637, A94132101633638, A94132101633639, A94132101633640","stock":14,"precioPubl":219990,"precioNeto":184866,"costoNeto":70095,"margenPct":62.1,"maxDcto":23.1,"uds25":0,"cyberTier":20,"cyberST":20,"uds60d":2,"uds30d":0,"uds15d":0},{"title":"BOTIN GINEBRA MADERA","tipo":"Botines","skus":"A94132301658036, A94132301658037, A94132301658038, A94132301658039, A94132301658040","stock":13,"precioPubl":219990,"precioNeto":184866,"costoNeto":75095,"margenPct":59.4,"maxDcto":17.6,"uds25":0,"cyberTier":20,"cyberST":20,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"BOTIN GUNS NEGRO","tipo":"Botines","skus":"259256201600235, 259256201600236, 259256201600237, 259256201600238, 259256201600239, 259256201600240, 259256201600241","stock":5,"precioPubl":209990,"precioNeto":176462,"costoNeto":66223,"margenPct":62.5,"maxDcto":23.9,"uds25":8,"cyberTier":"sd","cyberST":40,"uds60d":4,"uds30d":3,"uds15d":0},{"title":"BOTIN JEANE EBANO","tipo":"Botines","skus":"A24229101690336, A24229101690337, A24229101690338, A24229101690339, A24229101690340","stock":8,"precioPubl":239990,"precioNeto":201672,"costoNeto":86473,"margenPct":57.1,"maxDcto":13,"uds25":0,"cyberTier":"sd","cyberST":30,"uds60d":7,"uds30d":4,"uds15d":3},{"title":"BOTIN JEANE MADERA","tipo":"Botines","skus":"A24229401658036, A24229401658037, A24229401658038, A24229401658039, A24229401658040","stock":7,"precioPubl":239990,"precioNeto":201672,"costoNeto":86473,"margenPct":57.1,"maxDcto":13,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":7,"uds30d":3,"uds15d":0},{"title":"BOTIN JEANE NEGRO","tipo":"Botines","skus":"A24229401600236, A24229401600237, A24229401600238, A24229401600239, A24229401600240","stock":15,"precioPubl":239990,"precioNeto":201672,"costoNeto":82392,"margenPct":59.1,"maxDcto":17.1,"uds25":0,"cyberTier":"sd","cyberST":15,"uds60d":13,"uds30d":3,"uds15d":1},{"title":"BOTIN JOY NEGRO","tipo":"Botines","skus":"A24208103600236, A24208103600237, A24208103600238, A24208103600239, A24208103600240","stock":6,"precioPubl":219990,"precioNeto":184866,"costoNeto":73779,"margenPct":60.1,"maxDcto":19,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":11,"uds30d":5,"uds15d":5},{"title":"BOTIN KORN MADERA","tipo":"Botines","skus":"B54204101658036, B54204101658037, B54204101658038, B54204101658039","stock":8,"precioPubl":229990,"precioNeto":193269,"costoNeto":84198,"margenPct":56.4,"maxDcto":11.6,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":4,"uds30d":3,"uds15d":2},{"title":"BOTIN KORN NEGRO","tipo":"Botines","skus":"B54204101600235, B54204101600236, B54204101600237, B54204101600238, B54204101600239, B54204101600240","stock":13,"precioPubl":229990,"precioNeto":193269,"costoNeto":74518,"margenPct":61.4,"maxDcto":21.8,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":9,"uds30d":4,"uds15d":3},{"title":"BOTIN LED NEGRO","tipo":"Botines","skus":"U94203301600242, U94203301600243, U94203301600244, U94203301600245","stock":1,"precioPubl":189990,"precioNeto":159655,"costoNeto":80000,"margenPct":49.9,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":1,"uds30d":1,"uds15d":1},{"title":"BOTIN NANTES CALVADOS","tipo":"Botines","skus":"B80231201687136, B80231201687137, B80231201687138, B80231201687139, B80231201687140","stock":11,"precioPubl":259990,"precioNeto":218479,"costoNeto":95576,"margenPct":56.3,"maxDcto":11.3,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":5,"uds30d":5,"uds15d":3},{"title":"BOTIN NANTES CARTON","tipo":"Botines","skus":"B80231101686836, B80231101686837, B80231101686838, B80231101686839, B80231101686840","stock":11,"precioPubl":259990,"precioNeto":218479,"costoNeto":92162,"margenPct":57.8,"maxDcto":14.4,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":3,"uds30d":3,"uds15d":1},{"title":"BOTIN NANTES ICE","tipo":"Botines","skus":"B80231201633636, B80231201633637, B80231201633638, B80231201633639, B80231201633640","stock":14,"precioPubl":259990,"precioNeto":218479,"costoNeto":95576,"margenPct":56.3,"maxDcto":11.3,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":2,"uds30d":1,"uds15d":0},{"title":"BOTIN NASH ORO","tipo":"Botines","skus":"B84205401000136, B84205401000137, B84205401000138, B84205401000139, B84205401000140","stock":14,"precioPubl":279990,"precioNeto":235286,"costoNeto":93030,"margenPct":60.5,"maxDcto":19.8,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"BOTIN OLTEN MADERA","tipo":"Botines","skus":"B82117101658036, B82117101658037, B82117101658038, B82117101658039, B82117101658040","stock":7,"precioPubl":239990,"precioNeto":201672,"costoNeto":81922,"margenPct":59.4,"maxDcto":17.6,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":5,"uds30d":4,"uds15d":2},{"title":"BOTIN OLTEN TEAL","tipo":"Botines","skus":"B82117201658236, B82117201658237, B82117201658238, B82117201658239, B82117201658240","stock":13,"precioPubl":249990,"precioNeto":210076,"costoNeto":85335,"margenPct":59.4,"maxDcto":17.6,"uds25":0,"cyberTier":10,"cyberST":15,"uds60d":2,"uds30d":1,"uds15d":1},{"title":"BOTIN PROVENCE EBANO","tipo":"Botines","skus":"A89233201614436, A89233201614437, A89233201614438, A89233201614439, A89233201614440","stock":6,"precioPubl":219990,"precioNeto":184866,"costoNeto":77371,"margenPct":58.1,"maxDcto":15.1,"uds25":0,"cyberTier":"sd","cyberST":40,"uds60d":5,"uds30d":3,"uds15d":2},{"title":"BOTIN RHAPSODY CARTÓN","tipo":"Botines","skus":"207239202000636, 207239202000637, 207239202000638, 207239202000639, 207239202000640","stock":13,"precioPubl":249990,"precioNeto":210076,"costoNeto":88746,"margenPct":57.8,"maxDcto":14.3,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":6,"uds30d":3,"uds15d":1},{"title":"BOTIN RHAPSODY EBANO","tipo":"Botines","skus":"207239702000136, 207239702000137, 207239702000138, 207239702000139, 207239702000140","stock":23,"precioPubl":249990,"precioNeto":210076,"costoNeto":88749,"margenPct":57.8,"maxDcto":14.3,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":5,"uds30d":3,"uds15d":1},{"title":"BOTIN RHAPSODY FONDENTE","tipo":"Botines","skus":"207239202000836, 207239202000837, 207239202000838, 207239202000839, 207239202000840","stock":1,"precioPubl":249990,"precioNeto":210076,"costoNeto":88738,"margenPct":57.8,"maxDcto":14.3,"uds25":0,"cyberTier":10,"cyberST":100,"uds60d":6,"uds30d":2,"uds15d":1},{"title":"BOTIN RHAPSODY MADERA","tipo":"Botines","skus":"207239702000336, 207239702000337, 207239702000338, 207239702000339, 207239702000340","stock":12,"precioPubl":249990,"precioNeto":210076,"costoNeto":88749,"margenPct":57.8,"maxDcto":14.3,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":2,"uds30d":1,"uds15d":1},{"title":"BOTIN RHAPSODY NEGRO","tipo":"Botines","skus":"207239202600236, 207239202600237, 207239202600238, 207239202600239, 207239202600240","stock":105,"precioPubl":249990,"precioNeto":210076,"costoNeto":88578,"margenPct":57.8,"maxDcto":14.5,"uds25":3,"cyberTier":10,"cyberST":5,"uds60d":10,"uds30d":4,"uds15d":1},{"title":"BOTIN ROD CASTAÑA","tipo":"Botines","skus":"U81202201622541, U81202201622542, U81202201622543, U81202201622544, U81202201622545, U81202201622546","stock":4,"precioPubl":189990,"precioNeto":159655,"costoNeto":75000,"margenPct":53,"maxDcto":4.7,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":1,"uds30d":1,"uds15d":0},{"title":"BOTIN ROD FANGO","tipo":"Botines","skus":"U81202201613341, U81202201613342, U81202201613343, U81202201613344, U81202201613345, U81202201613346","stock":4,"precioPubl":189990,"precioNeto":159655,"costoNeto":75000,"margenPct":53,"maxDcto":4.7,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN RORY MADERA","tipo":"Botines","skus":"B82211101658036, B82211101658037, B82211101658038, B82211101658039","stock":3,"precioPubl":269990,"precioNeto":226882,"costoNeto":97465,"margenPct":57,"maxDcto":12.9,"uds25":0,"cyberTier":30,"cyberST":70,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"BOTIN RORY NEGRO","tipo":"Botines","skus":"B82211101600235, B82211101600236, B82211101600237, B82211101600238, B82211101600239, B82211101600240","stock":1,"precioPubl":269990,"precioNeto":226882,"costoNeto":91976,"margenPct":59.5,"maxDcto":17.8,"uds25":0,"cyberTier":30,"cyberST":100,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN ROXANE EBANO","tipo":"Botines","skus":"B80234301614436, B80234301614437, B80234301614438, B80234301614439, B80234301614440","stock":15,"precioPubl":299990,"precioNeto":252092,"costoNeto":108092,"margenPct":57.1,"maxDcto":13,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":4,"uds30d":3,"uds15d":2},{"title":"BOTIN ROXANE ICE","tipo":"Botines","skus":"B802341010001I2536, B802341010001I2537, B802341010001I2538, B802341010001I2539, B802341010001I2540","stock":13,"precioPubl":299990,"precioNeto":252092,"costoNeto":108092,"margenPct":57.1,"maxDcto":13,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":6,"uds30d":4,"uds15d":3},{"title":"BOTIN ROXANE NEGRO","tipo":"Botines","skus":"B80242101600236, B80242101600239, B80242101600240, B80242101600237, B80242101600238","stock":48,"precioPubl":299990,"precioNeto":252092,"costoNeto":103025,"margenPct":59.1,"maxDcto":17.1,"uds25":0,"cyberTier":10,"cyberST":10,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"BOTIN ROXY NEGRO","tipo":"Botines","skus":"259214304600237, 259214304600238, 259214304600239, 259214304600240","stock":7,"precioPubl":269990,"precioNeto":226882,"costoNeto":100127,"margenPct":55.9,"maxDcto":10.5,"uds25":0,"cyberTier":"sd","cyberST":40,"uds60d":8,"uds30d":3,"uds15d":0},{"title":"BOTIN RUBY ARGENTO","tipo":"Botines","skus":"B82206201611035, B82206201611036, B82206201611037, B82206201611038, B82206201611039, B82206201611040","stock":6,"precioPubl":219990,"precioNeto":184866,"costoNeto":94685,"margenPct":48.8,"maxDcto":0,"uds25":0,"cyberTier":30,"cyberST":50,"uds60d":3,"uds30d":2,"uds15d":0},{"title":"BOTIN RUBY GRIS PLATA","tipo":"Botines","skus":"B82206102000135, B82206102000136, B82206102000137, B82206102000138, B82206102000139, B82206102000140","stock":5,"precioPubl":219990,"precioNeto":184866,"costoNeto":88886,"margenPct":51.9,"maxDcto":2.5,"uds25":0,"cyberTier":30,"cyberST":50,"uds60d":3,"uds30d":2,"uds15d":0},{"title":"BOTIN SAINT FONDENTE","tipo":"Botines","skus":"259238502000236, 259238502000237, 259238502000238, 259238502000239, 259238502000240","stock":44,"precioPubl":219990,"precioNeto":184866,"costoNeto":71682,"margenPct":61.2,"maxDcto":21.3,"uds25":0,"cyberTier":10,"cyberST":12,"uds60d":9,"uds30d":3,"uds15d":0},{"title":"BOTIN SAINT MADERA","tipo":"Botines","skus":"259238502000836, 259238502000837, 259238502000838, 259238502000839, 259238502000840","stock":9,"precioPubl":219990,"precioNeto":184866,"costoNeto":71682,"margenPct":61.2,"maxDcto":21.3,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":4,"uds30d":1,"uds15d":0},{"title":"BOTIN SAINT NEGRO","tipo":"Botines","skus":"259238502600236, 259238502600237, 259238502600238, 259238502600239, 259238502600240","stock":46,"precioPubl":219990,"precioNeto":184866,"costoNeto":71934,"margenPct":61.1,"maxDcto":21.1,"uds25":0,"cyberTier":10,"cyberST":12,"uds60d":12,"uds30d":6,"uds15d":1},{"title":"BOTIN STUDS CALVADOS","tipo":"Botines","skus":"401231304687142, 401231304687143, 401231304687144, 401231304687145","stock":3,"precioPubl":189990,"precioNeto":159655,"costoNeto":93000,"margenPct":41.7,"maxDcto":0,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN STUDS NEGRO","tipo":"Botines","skus":"401231304600240, 401231304600241, 401231304600242, 401231304600243, 401231304600244, 401231304600245, 401231304600246","stock":2,"precioPubl":229990,"precioNeto":193269,"costoNeto":93000,"margenPct":51.9,"maxDcto":2.4,"uds25":1,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"BOTIN TRENT CALVADOS","tipo":"Botines","skus":"B80232201687136, B80232201687137, B80232201687138, B80232201687139, B80232201687140","stock":27,"precioPubl":219990,"precioNeto":184866,"costoNeto":76132,"margenPct":58.8,"maxDcto":16.5,"uds25":0,"cyberTier":20,"cyberST":12,"uds60d":4,"uds30d":2,"uds15d":0},{"title":"BOTIN TRENT ICE","tipo":"Botines","skus":"B80232201633636, B80232201633637, B80232201633638, B80232201633639, B80232201633640","stock":38,"precioPubl":219990,"precioNeto":184866,"costoNeto":78453,"margenPct":57.6,"maxDcto":13.9,"uds25":0,"cyberTier":20,"cyberST":10,"uds60d":6,"uds30d":3,"uds15d":0},{"title":"BOTIN TRENT NERO","tipo":"Botines","skus":"B80232401600236, B80232401600237, B80232401600238, B80232401600239, B80232401600240","stock":24,"precioPubl":219990,"precioNeto":184866,"costoNeto":78509,"margenPct":57.5,"maxDcto":13.9,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":7,"uds30d":4,"uds15d":1},{"title":"BOTIN TRENT TEAL","tipo":"Botines","skus":"B80232101658236, B80232101658237, B80232101658238, B80232101658239, B80232101658240","stock":12,"precioPubl":219990,"precioNeto":184866,"costoNeto":75095,"margenPct":59.4,"maxDcto":17.6,"uds25":0,"cyberTier":20,"cyberST":20,"uds60d":2,"uds30d":1,"uds15d":0},{"title":"BOTIN VALENCE CASTAGNA (MJUS by AS98)","tipo":"Botines","skus":"L89201101622536, L89201101622537, L89201101622538, L89201101622539, L89201101622540","stock":13,"precioPubl":179990,"precioNeto":151252,"costoNeto":57723,"margenPct":61.8,"maxDcto":22.6,"uds25":0,"cyberTier":10,"cyberST":10,"uds60d":3,"uds30d":3,"uds15d":2},{"title":"BOTIN VALENCE NEGRO (MJUS by AS98)","tipo":"Botines","skus":"L89201101600236, L89201101600237, L89201101600238, L89201101600239, L89201101600240","stock":14,"precioPubl":179990,"precioNeto":151252,"costoNeto":57723,"margenPct":61.8,"maxDcto":22.6,"uds25":0,"cyberTier":10,"cyberST":10,"uds60d":2,"uds30d":2,"uds15d":0},{"title":"BOTIN VENICE BORDO (MJUS by AS98)","tipo":"Botines","skus":"L39205201633436, L39205201633437, L39205201633438, L39205201633439, L39205201633440","stock":6,"precioPubl":179990,"precioNeto":151252,"costoNeto":61187,"margenPct":59.5,"maxDcto":17.9,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"BOTIN VENICE NEGRO (MJUS by AS98)","tipo":"Botines","skus":"L39206101600236, L39206101600237, L39206101600238, L39206101600239, L39206101600240","stock":11,"precioPubl":179990,"precioNeto":151252,"costoNeto":58467,"margenPct":61.3,"maxDcto":21.6,"uds25":2,"cyberTier":"sd","cyberST":10,"uds60d":9,"uds30d":7,"uds15d":6},{"title":"BOTIN VENICE PELTRO (MJUS by AS98)","tipo":"Botines","skus":"L39205201633436, L39205201633437, L39205201633438, L39205201633439, L39205201633440","stock":6,"precioPubl":179990,"precioNeto":151252,"costoNeto":61187,"margenPct":59.5,"maxDcto":17.9,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":6,"uds30d":6,"uds15d":4},{"title":"BOTIN VIENA CAFE (MJUS by AS98)","tipo":"Botines","skus":"L48206101622536, L48206101622537, L48206101622538, L48206101622539, L48206101622540","stock":9,"precioPubl":159990,"precioNeto":134445,"costoNeto":52848,"margenPct":60.7,"maxDcto":20.3,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":11,"uds30d":7,"uds15d":2},{"title":"BOTIN VIENA NEGRO (MJUS by AS98)","tipo":"Botines","skus":"L48206101600236, L48206101600237, L48206101600238, L48206101600239, L48206101600240","stock":13,"precioPubl":159990,"precioNeto":134445,"costoNeto":53887,"margenPct":59.9,"maxDcto":18.7,"uds25":7,"cyberTier":"sd","cyberST":10,"uds60d":6,"uds30d":4,"uds15d":2},{"title":"BOTIN VIENA VERDE (MJUS by AS98)","tipo":"Botines","skus":"L48206101611936, L48206101611937, L48206101611938, L48206101611939, L48206101611940","stock":4,"precioPubl":159990,"precioNeto":134445,"costoNeto":55414,"margenPct":58.8,"maxDcto":16.4,"uds25":0,"cyberTier":"sd","cyberST":60,"uds60d":11,"uds30d":7,"uds15d":2},{"title":"BOTIN WESTON SMOKE","tipo":"Botines","skus":"B84205202622335, B84205202622336, B84205202622337, B84205202622338, B84205202622339, B84205202622340","stock":1,"precioPubl":269990,"precioNeto":226882,"costoNeto":86000,"margenPct":62.1,"maxDcto":23.1,"uds25":2,"cyberTier":20,"cyberST":50,"uds60d":3,"uds30d":1,"uds15d":1},{"title":"BOTIN WILCO NEGRO","tipo":"Botines","skus":"A23210501600235, A23210501600236, A23210501600237, A23210501600238, A23210501600239, A23210501600240, A23210501600241","stock":35,"precioPubl":239990,"precioNeto":201672,"costoNeto":83382,"margenPct":58.7,"maxDcto":16.1,"uds25":0,"cyberTier":10,"cyberST":13,"uds60d":7,"uds30d":4,"uds15d":3},{"title":"BOTIN ZAC EBANO","tipo":"Botines","skus":"B84216301614436, B84216301614437, B84216301614438, B84216301614439, B84216301614440","stock":2,"precioPubl":309990,"precioNeto":260496,"costoNeto":102920,"margenPct":60.5,"maxDcto":19.9,"uds25":0,"cyberTier":"sd","cyberST":100,"uds60d":6,"uds30d":4,"uds15d":1},{"title":"BOTIN ZAC ICE","tipo":"Botines","skus":"B84216201633636, B84216201633637, B84216201633638, B84216201633639, B84216201633640","stock":3,"precioPubl":309990,"precioNeto":260496,"costoNeto":107832,"margenPct":58.6,"maxDcto":16,"uds25":0,"cyberTier":"sd","cyberST":50,"uds60d":1,"uds30d":1,"uds15d":1},{"title":"BOTIN ZURICH ICE","tipo":"Botines","skus":"B82209501633636, B82209501633639, B82209501633640, B82209501633637, B82209501633638","stock":17,"precioPubl":239990,"precioNeto":201672,"costoNeto":85335,"margenPct":57.7,"maxDcto":14.2,"uds25":0,"cyberTier":10,"cyberST":12,"uds60d":4,"uds30d":3,"uds15d":0},{"title":"CARTERA ALINA TIGER","tipo":"Cartera","skus":"2007863010004","stock":1,"precioPubl":325990,"precioNeto":273941,"costoNeto":0,"margenPct":null,"maxDcto":0,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CARTERA BANANO SKY CALVADOS","tipo":"Cartera","skus":"2007653016871","stock":1,"precioPubl":349990,"precioNeto":294109,"costoNeto":130948,"margenPct":55.5,"maxDcto":9.7,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CARTERA BANANO SKY NERO","tipo":"Cartera","skus":"2007653016002","stock":4,"precioPubl":349990,"precioNeto":294109,"costoNeto":130948,"margenPct":55.5,"maxDcto":9.7,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CARTERA KIAN CALVADOS","tipo":"Cartera","skus":"20069012016871","stock":3,"precioPubl":139990,"precioNeto":117639,"costoNeto":54174,"margenPct":53.9,"maxDcto":6.6,"uds25":0,"cyberTier":10,"cyberST":50,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CARTERA KIAN EBANO","tipo":"Cartera","skus":"20069010016144","stock":5,"precioPubl":139990,"precioNeto":117639,"costoNeto":52396,"margenPct":55.5,"maxDcto":9.7,"uds25":0,"cyberTier":10,"cyberST":40,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"CARTERA KIAN NEGRO","tipo":"Cartera","skus":"2006908016002","stock":8,"precioPubl":139990,"precioNeto":117639,"costoNeto":54174,"margenPct":53.9,"maxDcto":6.6,"uds25":0,"cyberTier":10,"cyberST":30,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CARTERA LEAH BASALTO","tipo":"Cartera","skus":"2007762016579","stock":4,"precioPubl":339990,"precioNeto":285706,"costoNeto":0,"margenPct":null,"maxDcto":0,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CARTERA LEAH MADERA","tipo":"Cartera","skus":"2007762016580","stock":2,"precioPubl":339990,"precioNeto":285706,"costoNeto":129171,"margenPct":54.8,"maxDcto":8.3,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"CARTERA LEAH NERO","tipo":"Cartera","skus":"2007762016002","stock":2,"precioPubl":339990,"precioNeto":285706,"costoNeto":129171,"margenPct":54.8,"maxDcto":8.3,"uds25":0,"cyberTier":"sd","cyberST":50,"uds60d":7,"uds30d":4,"uds15d":0},{"title":"CARTERA LEIDEN EBANO","tipo":"Cartera","skus":"2007712010001","stock":4,"precioPubl":399990,"precioNeto":336126,"costoNeto":153634,"margenPct":54.3,"maxDcto":7.3,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":3,"uds30d":1,"uds15d":0},{"title":"CARTERA LEIDEN NEGRO","tipo":"Cartera","skus":"2007711016002","stock":5,"precioPubl":399990,"precioNeto":336126,"costoNeto":153634,"margenPct":54.3,"maxDcto":7.3,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":2,"uds30d":1,"uds15d":0},{"title":"CARTERA LIMONE CALVADOS","tipo":"Cartera","skus":"2007157010001","stock":1,"precioPubl":179990,"precioNeto":151252,"costoNeto":71300,"margenPct":52.9,"maxDcto":4.4,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CARTERA LIPS BASALTO","tipo":"Cartera","skus":"2007842016579","stock":4,"precioPubl":319990,"precioNeto":268899,"costoNeto":120452,"margenPct":55.2,"maxDcto":9.1,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CARTERA LIPS EBANO","tipo":"Cartera","skus":"2007842016144","stock":5,"precioPubl":319990,"precioNeto":268899,"costoNeto":120452,"margenPct":55.2,"maxDcto":9.1,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":2,"uds30d":1,"uds15d":1},{"title":"CARTERA LIPS MADERA","tipo":"Cartera","skus":"2007842016580","stock":3,"precioPubl":319990,"precioNeto":268899,"costoNeto":120452,"margenPct":55.2,"maxDcto":9.1,"uds25":0,"cyberTier":10,"cyberST":40,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"CARTERA LIPS NERO","tipo":"Cartera","skus":"2007843016002","stock":7,"precioPubl":319990,"precioNeto":268899,"costoNeto":123923,"margenPct":53.9,"maxDcto":6.5,"uds25":0,"cyberTier":10,"cyberST":30,"uds60d":1,"uds30d":1,"uds15d":0},{"title":"CARTERA MARGARET BASALTO","tipo":"Cartera","skus":"2005922060002","stock":5,"precioPubl":209990,"precioNeto":176462,"costoNeto":81176,"margenPct":54,"maxDcto":6.7,"uds25":0,"cyberTier":"sd","cyberST":20,"uds60d":3,"uds30d":2,"uds15d":0},{"title":"CARTERA MARGARET EBANO LISO","tipo":"Cartera","skus":"2005922060006","stock":2,"precioPubl":209990,"precioNeto":176462,"costoNeto":81176,"margenPct":54,"maxDcto":6.7,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CARTERA MARGARET MADERA","tipo":"Cartera","skus":"2005922060001","stock":4,"precioPubl":209990,"precioNeto":176462,"costoNeto":81176,"margenPct":54,"maxDcto":6.7,"uds25":0,"cyberTier":"sd","cyberST":30,"uds60d":2,"uds30d":0,"uds15d":0},{"title":"CARTERA MARGARET OASIS","tipo":"Cartera","skus":"2005922060009","stock":3,"precioPubl":209990,"precioNeto":176462,"costoNeto":81176,"margenPct":54,"maxDcto":6.7,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CARTERA PATCH NEGRO","tipo":"Cartera","skus":"2003015056002","stock":3,"precioPubl":439990,"precioNeto":369739,"costoNeto":191132,"margenPct":48.3,"maxDcto":0,"uds25":0,"cyberTier":"sd","cyberST":10,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"CARTERA SEREN CARTÓN","tipo":"Cartera","skus":"2007972016868","stock":1,"precioPubl":255990,"precioNeto":215118,"costoNeto":130000,"margenPct":39.6,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CINTURON ALPES NERO","tipo":"Cinturones","skus":"9881751016002","stock":7,"precioPubl":139990,"precioNeto":117639,"costoNeto":60268,"margenPct":48.8,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CINTURON BÁLTICO NERO","tipo":"Cinturones","skus":"9881482016002","stock":8,"precioPubl":99990,"precioNeto":84025,"costoNeto":41900,"margenPct":50.1,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"CINTURON GOSSE CUOIO","tipo":"Cinturones","skus":"988117406613090, 9881174066130100","stock":3,"precioPubl":129990,"precioNeto":109235,"costoNeto":48563,"margenPct":55.5,"maxDcto":9.8,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":1,"uds30d":1,"uds15d":1},{"title":"CINTURON GOSSE EBANO","tipo":"Cinturones","skus":"988117406614490, 9881174066144100","stock":8,"precioPubl":129990,"precioNeto":109235,"costoNeto":48563,"margenPct":55.5,"maxDcto":9.8,"uds25":1,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CINTURON GOSSE NEGRO","tipo":"Cinturones","skus":"988117406600290, 9881174066002100","stock":1,"precioPubl":129990,"precioNeto":109235,"costoNeto":48563,"margenPct":55.5,"maxDcto":9.8,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CINTURON JOE NATUR","tipo":"Cinturones","skus":"988012211621190, 9880122116211100","stock":6,"precioPubl":129990,"precioNeto":109235,"costoNeto":48931,"margenPct":55.2,"maxDcto":9.1,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CINTURON JOE NEGRO","tipo":"Cinturones","skus":"988012211600290, 9880122116002100","stock":6,"precioPubl":139990,"precioNeto":117639,"costoNeto":48931,"margenPct":58.4,"maxDcto":15.6,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CINTURON JOE TDM","tipo":"Cinturones","skus":"988012211625390, 9880122116253100","stock":6,"precioPubl":129990,"precioNeto":109235,"costoNeto":48931,"margenPct":55.2,"maxDcto":9.1,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CINTURON JUDD NATUR","tipo":"Cinturones","skus":"988029109622190, 988029109622100","stock":3,"precioPubl":79990,"precioNeto":67218,"costoNeto":34604,"margenPct":48.5,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CINTURON JUDD NEGRO","tipo":"Cinturones","skus":"988029109600290, 9880291096002100","stock":2,"precioPubl":79990,"precioNeto":67218,"costoNeto":37498,"margenPct":44.2,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CINTURON KAM NEGRO","tipo":"Cinturones","skus":"988071110600290, 9880711106002100","stock":8,"precioPubl":99990,"precioNeto":84025,"costoNeto":41900,"margenPct":50.1,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"CINTURON KENITH EBANO","tipo":"Cinturones","skus":"9880773016144","stock":5,"precioPubl":139990,"precioNeto":117639,"costoNeto":61961,"margenPct":47.3,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":1,"uds30d":1,"uds15d":0},{"title":"CINTURON KENITH NERO","tipo":"Cinturones","skus":"9880773016002","stock":3,"precioPubl":139990,"precioNeto":117639,"costoNeto":61961,"margenPct":47.3,"maxDcto":0,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":3,"uds30d":2,"uds15d":1},{"title":"MOCASIN ANIA ORO","tipo":"Mocasines","skus":"B77105301000135, B77105301000136, B77105301000137, B77105301000138, B77105301000139, B77105301000140","stock":4,"precioPubl":169990,"precioNeto":142849,"costoNeto":53500,"margenPct":62.5,"maxDcto":24,"uds25":0,"cyberTier":30,"cyberST":40,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"MOCASIN CARL PLAINO","tipo":"Mocasines","skus":"B73111101631135, B73111101631136, B73111101631137, B73111101631138, B73111101631139, B73111101631140","stock":1,"precioPubl":189990,"precioNeto":159655,"costoNeto":70200,"margenPct":56,"maxDcto":10.8,"uds25":1,"cyberTier":30,"cyberST":100,"uds60d":2,"uds30d":0,"uds15d":0},{"title":"MOCASIN ERIC BEIGE","tipo":"Mocasines","skus":"B77102301000135, B77102301000136, B77102301000137, B77102301000138, B77102301000139, B77102301000140","stock":5,"precioPubl":179990,"precioNeto":151252,"costoNeto":56500,"margenPct":62.6,"maxDcto":24.2,"uds25":0,"cyberTier":30,"cyberST":20,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"MOCASIN GAYA NEGRO","tipo":"Mocasines","skus":"B59102401600236, B59102401600237, B59102401600238, B59102401600239, B59102401600240","stock":4,"precioPubl":179990,"precioNeto":151252,"costoNeto":63183,"margenPct":58.2,"maxDcto":15.3,"uds25":0,"cyberTier":10,"cyberST":25,"uds60d":2,"uds30d":0,"uds15d":0},{"title":"MOCASIN KNOX CAMEL","tipo":"Mocasines","skus":"B73108201000135, B73108201000136, B73108201000137, B73108201000138, B73108201000139, B73108201000140","stock":1,"precioPubl":179990,"precioNeto":151252,"costoNeto":61000,"margenPct":59.7,"maxDcto":18.2,"uds25":1,"cyberTier":30,"cyberST":40,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"MOCASIN MAVIS BRONCE","tipo":"Mocasines","skus":"B73101101631135, B73101101631136, B73101101631137, B73101101631138, B73101101631139, B73101101631140","stock":4,"precioPubl":179990,"precioNeto":151252,"costoNeto":59500,"margenPct":60.7,"maxDcto":20.2,"uds25":0,"cyberTier":30,"cyberST":40,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"MOCASIN MOCA NEGRO","tipo":"Mocasines","skus":"B59111402600236, B59111402600237, B59111402600238, B59111402600239, B59111402600240","stock":1,"precioPubl":209990,"precioNeto":176462,"costoNeto":73525,"margenPct":58.3,"maxDcto":15.5,"uds25":0,"cyberTier":30,"cyberST":40,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"MOCASIN SPLIT EBANO","tipo":"Mocasines","skus":"C13102101614436, C13102101614437, C13102101614438, C13102101614439, C13102101614440","stock":13,"precioPubl":189990,"precioNeto":159655,"costoNeto":65993,"margenPct":58.7,"maxDcto":16.2,"uds25":0,"cyberTier":10,"cyberST":15,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"MOCASIN SPLIT NEGRO","tipo":"Mocasines","skus":"C13102201600236, C13102201600237, C13102201600238, C13102201600239, C13102201600240","stock":12,"precioPubl":189990,"precioNeto":159655,"costoNeto":65993,"margenPct":58.7,"maxDcto":16.2,"uds25":0,"cyberTier":10,"cyberST":15,"uds60d":3,"uds30d":2,"uds15d":0},{"title":"MULE SIMON NEGRO","tipo":"Sandalias","skus":"B84114301600236, B84114301600237, B84114301600238, B84114301600239, B84114301600240","stock":2,"precioPubl":229990,"precioNeto":193269,"costoNeto":80102,"margenPct":58.6,"maxDcto":15.9,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"MULE VENERE NEGRO","tipo":"Sandalias","skus":"B97101101000136, B97101101000137, B97101101000138, B97101101000139, B97101101000140","stock":2,"precioPubl":219990,"precioNeto":184866,"costoNeto":71941,"margenPct":61.1,"maxDcto":21.1,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"MULE VENERE RUBINO","tipo":"Sandalias","skus":"B97101101623536, B97101101623537, B97101101623538, B97101101623539, B97101101623540","stock":1,"precioPubl":219990,"precioNeto":184866,"costoNeto":71941,"margenPct":61.1,"maxDcto":21.1,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"SANDALIA LIZZY CHIFFON","tipo":"Sandalias","skus":"B97106201000236, B97106201000237, B97106201000238, B97106201000239, B97106201000240","stock":1,"precioPubl":209990,"precioNeto":176462,"costoNeto":73525,"margenPct":58.3,"maxDcto":15.5,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"SANDALIA LIZZY NEGRO","tipo":"Sandalias","skus":"B97106101600236, B97106101600237, B97106101600238, B97106101600239, B97106101600240","stock":3,"precioPubl":209990,"precioNeto":176462,"costoNeto":76774,"margenPct":56.5,"maxDcto":11.7,"uds25":0,"cyberTier":0,"cyberST":0,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA ADRIA ARGENTO","tipo":"Zapatillas","skus":"A48109201000136, A48109201000137, A48109201000138, A48109201000139, A48109201000140","stock":8,"precioPubl":169990,"precioNeto":142849,"costoNeto":62000,"margenPct":56.6,"maxDcto":12,"uds25":2,"cyberTier":20,"cyberST":15,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA ADRIA CALVADOS","tipo":"Zapatillas","skus":"A48126104000136, A48126104000137, A48126104000138, A48126104000139, A48126104000140","stock":19,"precioPubl":169990,"precioNeto":142849,"costoNeto":51951,"margenPct":63.6,"maxDcto":26.2,"uds25":1,"cyberTier":10,"cyberST":10,"uds60d":13,"uds30d":4,"uds15d":1},{"title":"ZAPATILLA ADRIA DIRTY GOLD","tipo":"Zapatillas","skus":"A48126103000136, A48126103000137, A48126103000138, A48126103000139, A48126103000140","stock":22,"precioPubl":169990,"precioNeto":142849,"costoNeto":51951,"margenPct":63.6,"maxDcto":26.2,"uds25":0,"cyberTier":10,"cyberST":10,"uds60d":12,"uds30d":2,"uds15d":1},{"title":"ZAPATILLA ADRIA DURTY BLACK","tipo":"Zapatillas","skus":"A48109701000136, A48109701000137, A48109701000138, A48109701000139, A48109701000140","stock":8,"precioPubl":169990,"precioNeto":142849,"costoNeto":69064,"margenPct":51.7,"maxDcto":1.9,"uds25":1,"cyberTier":10,"cyberST":20,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA ADRIA ICE","tipo":"Zapatillas","skus":"A48127401000136, A48127401000137, A48127401000138, A48127401000139, A48127401000140","stock":35,"precioPubl":169990,"precioNeto":142849,"costoNeto":51951,"margenPct":63.6,"maxDcto":26.2,"uds25":0,"cyberTier":10,"cyberST":5,"uds60d":5,"uds30d":4,"uds15d":1},{"title":"ZAPATILLA ADRIA LEOPARDO","tipo":"Zapatillas","skus":"A48126301000136, A48126301000137, A48126301000138, A48126301000139, A48126301000140","stock":19,"precioPubl":169990,"precioNeto":142849,"costoNeto":51951,"margenPct":63.6,"maxDcto":26.2,"uds25":0,"cyberTier":10,"cyberST":10,"uds60d":4,"uds30d":1,"uds15d":0},{"title":"ZAPATILLA ADRIA NERO","tipo":"Zapatillas","skus":"A48120104000136, A48120104000137, A48120104000138, A48120104000139, A48120104000140","stock":31,"precioPubl":169990,"precioNeto":142849,"costoNeto":63781,"margenPct":55.4,"maxDcto":9.4,"uds25":0,"cyberTier":"sd","cyberST":4,"uds60d":9,"uds30d":2,"uds15d":1},{"title":"ZAPATILLA ADRIA SILVER","tipo":"Zapatillas","skus":"A48126201000136, A48126201000137, A48126201000138, A48126201000139, A48126201000140","stock":30,"precioPubl":169990,"precioNeto":142849,"costoNeto":51951,"margenPct":63.6,"maxDcto":26.2,"uds25":3,"cyberTier":10,"cyberST":10,"uds60d":4,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA ADRIA SMOKE","tipo":"Zapatillas","skus":"A48120203000136, A48120203000137, A48120203000138, A48120203000139, A48120203000140","stock":23,"precioPubl":169990,"precioNeto":142849,"costoNeto":54728,"margenPct":61.7,"maxDcto":22.3,"uds25":0,"cyberTier":"sd","cyberST":5,"uds60d":9,"uds30d":4,"uds15d":1},{"title":"ZAPATILLA ALLEN ARGENTO","tipo":"Zapatillas","skus":"A48221102000136, A48221102000137, A48221102000138, A48221102000139, A48221102000140","stock":3,"precioPubl":229990,"precioNeto":193269,"costoNeto":85014,"margenPct":56,"maxDcto":10.8,"uds25":0,"cyberTier":30,"cyberST":40,"uds60d":4,"uds30d":1,"uds15d":1},{"title":"ZAPATILLA AUSSIE ARGENTO","tipo":"Zapatillas","skus":"A48122102000136, A48122102000137, A48122102000138, A48122102000139, A48122102000140","stock":26,"precioPubl":199990,"precioNeto":168059,"costoNeto":70277,"margenPct":58.2,"maxDcto":15.2,"uds25":0,"cyberTier":20,"cyberST":10,"uds60d":3,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA AUSSIE OTTONE","tipo":"Zapatillas","skus":"A48122101000136, A48122101000137, A48122101000138, A48122101000139, A48122101000140","stock":18,"precioPubl":199990,"precioNeto":168059,"costoNeto":70277,"margenPct":58.2,"maxDcto":15.2,"uds25":0,"cyberTier":20,"cyberST":15,"uds60d":3,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA GOBACK ARGENTO","tipo":"Zapatillas","skus":"C10112101000136, C10112101000137, C10112101000138, C10112101000139, C10112101000140","stock":63,"precioPubl":159990,"precioNeto":134445,"costoNeto":51951,"margenPct":61.4,"maxDcto":21.6,"uds25":0,"cyberTier":10,"cyberST":4,"uds60d":2,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA GOBACK BIANCO","tipo":"Zapatillas","skus":"C10102201000136, C10102201000137, C10102201000138, C10102201000139, C10102201000140","stock":22,"precioPubl":159990,"precioNeto":134445,"costoNeto":54296,"margenPct":59.6,"maxDcto":18.1,"uds25":0,"cyberTier":10,"cyberST":10,"uds60d":3,"uds30d":3,"uds15d":1},{"title":"ZAPATILLA GOBACK CAFFE","tipo":"Zapatillas","skus":"C10113102000136, C10113102000137, C10113102000138, C10113102000139, C10113102000140, C10113102000141","stock":30,"precioPubl":159990,"precioNeto":134445,"costoNeto":54296,"margenPct":59.6,"maxDcto":18.1,"uds25":0,"cyberTier":10,"cyberST":0,"uds60d":2,"uds30d":1,"uds15d":1},{"title":"ZAPATILLA GOBACK CALVADOS","tipo":"Zapatillas","skus":"C10113201000136, C10113201000137, C10113201000138, C10113201000139, C10113201000140, C10113201000141","stock":21,"precioPubl":159990,"precioNeto":134445,"costoNeto":51951,"margenPct":61.4,"maxDcto":21.6,"uds25":0,"cyberTier":"sd","cyberST":5,"uds60d":14,"uds30d":7,"uds15d":2},{"title":"ZAPATILLA GOBACK DUST","tipo":"Zapatillas","skus":"C10108101000136, C10108101000137, C10108101000138, C10108101000139, C10108101000140","stock":10,"precioPubl":179990,"precioNeto":151252,"costoNeto":70277,"margenPct":53.5,"maxDcto":5.8,"uds25":0,"cyberTier":30,"cyberST":20,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA GOBACK ICE","tipo":"Zapatillas","skus":"C10111101000136, C10111101000137, C10111101000138, C10111101000139, C10111101000140","stock":16,"precioPubl":159990,"precioNeto":134445,"costoNeto":51951,"margenPct":61.4,"maxDcto":21.6,"uds25":0,"cyberTier":"sd","cyberST":0,"uds60d":6,"uds30d":3,"uds15d":1},{"title":"ZAPATILLA GOBACK LEOPARDO","tipo":"Zapatillas","skus":"C10101403000137, C10101403000138, C10101403000139","stock":12,"precioPubl":179990,"precioNeto":151252,"costoNeto":65365,"margenPct":56.8,"maxDcto":12.3,"uds25":0,"cyberTier":"sd","cyberST":0,"uds60d":4,"uds30d":1,"uds15d":1},{"title":"ZAPATILLA GOBACK MADERA","tipo":"Zapatillas","skus":"C10113301000136, C10113301000137, C10113301000138, C10113301000139, C10113301000140, C10113301000141","stock":44,"precioPubl":159990,"precioNeto":134445,"costoNeto":51951,"margenPct":61.4,"maxDcto":21.6,"uds25":0,"cyberTier":10,"cyberST":4,"uds60d":12,"uds30d":4,"uds15d":2},{"title":"ZAPATILLA GOBACK PLATA","tipo":"Zapatillas","skus":"C10107301000136, C10107301000137, C10107301000138, C10107301000139, C10107301000140","stock":7,"precioPubl":179990,"precioNeto":151252,"costoNeto":69479,"margenPct":54.1,"maxDcto":6.8,"uds25":0,"cyberTier":10,"cyberST":20,"uds60d":2,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA HIBACK ICE","tipo":"Zapatillas","skus":"C10205204000136, C10205204000137, C10205204000138, C10205204000139, C10205204000140","stock":3,"precioPubl":199990,"precioNeto":168059,"costoNeto":70277,"margenPct":58.2,"maxDcto":15.2,"uds25":0,"cyberTier":20,"cyberST":40,"uds60d":2,"uds30d":1,"uds15d":0},{"title":"ZAPATILLA JET AZUL","tipo":"Zapatillas","skus":"U54103301000140, U54103301000141, U54103301000142, U54103301000143, U54103301000144, U54103301000145, U54103301000146","stock":2,"precioPubl":199990,"precioNeto":168059,"costoNeto":81500,"margenPct":51.5,"maxDcto":1.6,"uds25":0,"cyberTier":30,"cyberST":50,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA JET BEIGE","tipo":"Zapatillas","skus":"U54102102000140, U54102102000141, U54102102000142, U54102102000143, U54102102000144, U54102102000145, U54102102000146","stock":1,"precioPubl":199990,"precioNeto":168059,"costoNeto":81500,"margenPct":51.5,"maxDcto":1.6,"uds25":0,"cyberTier":30,"cyberST":100,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA JET MULTICOLOR","tipo":"Zapatillas","skus":"U54103101648740, U54103101648741, U54103101648742, U54103101648743, U54103101648744, U54103101648745, U54103101648746","stock":5,"precioPubl":199990,"precioNeto":168059,"costoNeto":85000,"margenPct":49.4,"maxDcto":0,"uds25":0,"cyberTier":30,"cyberST":30,"uds60d":0,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA OASIS PLATA METALIZADA","tipo":"Zapatillas","skus":"B88101666123436, B88101666123437, B88101666123438, B88101666123439, B88101666123440","stock":3,"precioPubl":179990,"precioNeto":151252,"costoNeto":62000,"margenPct":59,"maxDcto":16.9,"uds25":0,"cyberTier":30,"cyberST":40,"uds60d":1,"uds30d":1,"uds15d":1},{"title":"ZAPATILLA PAUL MOUSE","tipo":"Zapatillas","skus":"655112601000436, 655112601000437, 655112601000438, 655112601000439, 655112601000440","stock":13,"precioPubl":159990,"precioNeto":134445,"costoNeto":40631,"margenPct":69.8,"maxDcto":38.7,"uds25":0,"cyberTier":30,"cyberST":10,"uds60d":3,"uds30d":1,"uds15d":1},{"title":"ZAPATILLA PAUL SILVER","tipo":"Zapatillas","skus":"655112202000136, 655112202000137, 655112202000138, 655112202000139, 655112202000140, 655112202000141","stock":5,"precioPubl":159990,"precioNeto":134445,"costoNeto":42500,"margenPct":68.4,"maxDcto":35.9,"uds25":2,"cyberTier":30,"cyberST":40,"uds60d":1,"uds30d":0,"uds15d":0},{"title":"ZAPATILLA WHO BLANCO","tipo":"Zapatillas","skus":"738104201000135, 738104201000136, 738104201000137, 738104201000138, 738104201000139, 738104201000140, 738104201000141","stock":1,"precioPubl":169990,"precioNeto":142849,"costoNeto":57000,"margenPct":60.1,"maxDcto":19.1,"uds25":0,"cyberTier":30,"cyberST":40,"uds60d":0,"uds30d":0,"uds15d":0}];
+const OBJETIVO = 65350843;
+
+// ─── localStorage persistence ─────────────────────────────────────────────────
+const LS_KEY      = 'cyber2026_plan';
+const LS_VER_KEY  = 'cyber2026_plan_ver';
+const LS_TS_KEY   = 'cyber2026_plan_ts';
+const PLAN_VER    = '1779820676863'; // injected by generator — changes when CSV changes
+
+function saveLS() {
+  var snap = {};
+  P.forEach(function(p) {
+    snap[p.title] = { ea: p.ea, eaDcto: p.eaDcto, eaST: p.eaST, cyberTier: p.cyberTier, cyberST: p.cyberST };
+  });
+  var now = new Date();
+  var ts = now.toLocaleDateString('es-CL') + ' ' + now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(snap));
+    localStorage.setItem(LS_VER_KEY, PLAN_VER);
+    localStorage.setItem(LS_TS_KEY, ts);
+  } catch(e) {}
+  document.getElementById('last-edit-ts').textContent = ts;
+}
+function loadLS(arr) {
+  var storedVer, snap, storedTs;
+  try {
+    storedVer = localStorage.getItem(LS_VER_KEY);
+    snap = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    storedTs  = localStorage.getItem(LS_TS_KEY) || '';
+  } catch(e) {}
+  // If CSV version changed, ignore localStorage and use fresh CSV data
+  if (!snap || storedVer !== PLAN_VER) return;
+  arr.forEach(function(p) {
+    var s = snap[p.title];
+    if (!s) return;
+    p.ea = s.ea; p.eaDcto = s.eaDcto; p.eaST = s.eaST;
+    p.cyberTier = s.cyberTier; p.cyberST = s.cyberST;
+  });
+  if (storedTs) document.getElementById('last-edit-ts').textContent = storedTs;
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const P = RAW.map(function(p, i) {
+  return {
+    id: i, title: p.title, tipo: p.tipo, stock: p.stock,
+    precioPubl: p.precioPubl, precioNeto: p.precioNeto, costoNeto: p.costoNeto,
+    margenPct: p.margenPct, maxDcto: p.maxDcto, uds25: p.uds25, uds60d: p.uds60d||0, uds30d: p.uds30d||0, uds15d: p.uds15d||0, isEA: p.isEA,
+    ea: p.ea, eaDcto: p.eaDcto||0, eaST: p.eaST,
+    cyberTier: p.cyberTier, cyberST: p.cyberST
+  };
+});
+// Restore saved state on load (overrides CSV defaults)
+loadLS(P);
+
+// Populate tipo filter
+var tipos = [];
+P.forEach(function(p) { if (tipos.indexOf(p.tipo) < 0) tipos.push(p.tipo); });
+tipos.sort();
+var tipoEl = document.getElementById('ftipo');
+tipos.forEach(function(t) {
+  var o = document.createElement('option'); o.value = t; o.textContent = t;
+  tipoEl.appendChild(o);
+});
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function clp(n) { return n > 0 ? '$' + Math.round(n).toLocaleString('es-CL') : null; }
+function mpCls(v) { return v === null ? '' : v >= 45 ? 'good' : v >= 35 ? 'mid' : 'low'; }
+function dash(s) { return s || '<span class="dash">—</span>'; }
+function tierDcto(t) {
+  if (t === 'sd') return 0;
+  var n = parseInt(t) || 0;
+  return n / 100;
+}
+
+function calc(p) {
+  var cyberU = (p.cyberTier && p.cyberST > 0)
+    ? Math.floor(p.stock * p.cyberST / 100) : 0;
+  var dcto   = p.cyberTier ? tierDcto(p.cyberTier) : 0;
+  var cyberR = cyberU > 0 ? cyberU * p.precioNeto * (1 - dcto) : 0;
+
+  var totM  = (cyberR > 0 && p.costoNeto > 0) ? cyberR - cyberU * p.costoNeto : null;
+  var totMp = (totM !== null && cyberR > 0) ? totM / cyberR * 100 : null;
+
+  return { cyberU: cyberU, cyberR: cyberR,
+           totU: cyberU, totR: cyberR, totM: totM, totMp: totMp };
+}
+
+function rowClass(p) {
+  if (!p.cyberTier) return 't0';
+  if (p.cyberTier === 'sd') return 'tsd';
+  if (p.cyberTier === 40) return 't40';
+  if (p.cyberTier === 30) return 't30';
+  if (p.cyberTier === 20) return 't20';
+  if (p.cyberTier === 15) return 't15';
+  if (p.cyberTier === 10) return 't10';
+  return 't0';
+}
+
+function tierBadge(t) {
+  if (!t) return '<span class="badge b-0">—</span>';
+  if (t === 'sd')  return '<span class="badge b-sd">Sin Dcto</span>';
+  if (t === 40)    return '<span class="badge b-40">40%</span>';
+  if (t === 30)    return '<span class="badge b-30">30% Liq</span>';
+  if (t === 20)    return '<span class="badge b-20">20%</span>';
+  if (t === 15)    return '<span class="badge b-15">15%</span>';
+  if (t === 10)    return '<span class="badge b-10">10%</span>';
+  return '<span class="badge b-0">—</span>';
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+var visibleIds = P.map(function(p){ return p.id; });
+
+function renderTable() {
+  var vis  = P.filter(function(p){ return visibleIds.indexOf(p.id) >= 0; });
+  var html = '', lastTipo = null;
+
+  vis.forEach(function(p) {
+    if (p.tipo !== lastTipo) {
+      var cnt = vis.filter(function(x){ return x.tipo === p.tipo; }).length;
+      html += '<tr class="ghdr"><td colspan="18">&#9670; ' + p.tipo.toUpperCase() + ' &mdash; ' + cnt + ' productos</td></tr>';
+      lastTipo = p.tipo;
+    }
+
+    var c  = calc(p);
+    var rc = rowClass(p);
+
+    // Margen actual
+    var mgStr = p.margenPct !== null
+      ? '<span class="' + mpCls(p.margenPct) + '">' + p.margenPct.toFixed(1) + '%</span>'
+      : '<span class="nocost">S/C</span>';
+
+    // Max dcto
+    var cyberDctoNum = (p.cyberTier && p.cyberTier !== 'sd') ? parseInt(p.cyberTier) : 0;
+    var overDcto = cyberDctoNum > 0 && p.costoNeto > 0 && cyberDctoNum > p.maxDcto;
+    var mdStr = p.maxDcto > 0
+      ? (overDcto ? '<span class="warn">&#9888;' + p.maxDcto.toFixed(1) + '%</span>' : p.maxDcto.toFixed(1) + '%')
+      : '<span class="nocost">N/D</span>';
+
+    // Projected values
+    var cyRStr  = c.cyberR > 0 ? '<span class="rev">' + clp(c.cyberR) + '</span>' : '<span class="dash">—</span>';
+    var totRStr = c.totR > 0 ? '<span class="rev" style="font-size:12px">' + clp(c.totR) + '</span>' : '<span class="dash">—</span>';
+    var mpStr   = (c.totMp !== null && c.totR > 0)
+      ? '<span class="' + mpCls(c.totMp) + '">' + c.totMp.toFixed(1) + '%</span>'
+      : '<span class="dash">—</span>';
+
+    var u25 = p.uds25 > 0 ? p.uds25 : '<span class="dash">—</span>';
+    var cosStr = p.costoNeto > 0 ? clp(p.costoNeto) : '<span class="nocost">S/C</span>';
+
+    // Cyber tier select options
+    var ctOpts = [
+      ['', '  —  '], ['sd', 'Sin Dcto'], ['10', '10%'],
+      ['15', '15%'], ['20', '20%'], ['30', '30% Liq'], ['40', '40%']
+    ].map(function(o) {
+      var sel = (String(p.cyberTier) === o[0] || (p.cyberTier === 0 && o[0] === '')) ? ' selected' : '';
+      return '<option value="' + o[0] + '"' + sel + '>' + o[1] + '</option>';
+    }).join('');
+
+    html += '<tr class="' + rc + '" data-id="' + p.id + '">'
+      + '<td class="l name">' + p.title + '</td>'
+      + '<td class="l tipo">' + p.tipo + '</td>'
+      + '<td><b>' + p.stock + '</b></td>'
+      + '<td>' + (p.uds60d > 0 ? '<span style="color:#1565c0;font-weight:600">' + p.uds60d + '</span>' : '<span class="dash">—</span>') + '</td>'
+      + '<td>' + (p.uds30d > 0 ? '<span style="color:#1565c0;font-weight:600">' + p.uds30d + '</span>' : '<span class="dash">—</span>') + '</td>'
+      + '<td>' + (p.uds15d > 0 ? '<span style="color:#1565c0;font-weight:600">' + p.uds15d + '</span>' : '<span class="dash">—</span>') + '</td>'
+      + '<td>' + dash(clp(p.precioPubl)) + '</td>'
+      + '<td>' + dash(clp(p.precioNeto)) + '</td>'
+      + '<td>' + (p.costoNeto > 0 ? clp(p.costoNeto) : '<span class="nocost">S/C</span>') + '</td>'
+      + '<td>' + mgStr + '</td>'
+      + '<td>' + mdStr + '</td>'
+      + '<td>' + u25  + '</td>'
+      // Cyber columns
+      + '<td class="cy-col"><select class="tsel" onchange="setCyberTier(' + p.id + ',this.value)">'
+      +   ctOpts + '</select></td>'
+      + '<td class="cy-col">'
+      +   '<input class="sti" type="number" min="0" max="100" value="' + p.cyberST + '"'
+      +   ' onchange="setCyberST(' + p.id + ',+this.value)">'
+      + '</td>'
+      + '<td class="cy-col">' + (c.cyberU > 0 ? c.cyberU : '<span class="dash">—</span>') + '</td>'
+      // Projected
+      + '<td>' + cyRStr  + '</td>'
+      + '<td>' + totRStr + '</td>'
+      + '<td>' + mpStr   + '</td>'
+      + '</tr>';
+  });
+
+  document.getElementById('tbody').innerHTML = html;
+  refreshTotals();
+}
+
+// ─── Refresh totals ───────────────────────────────────────────────────────────
+function refreshTotals() {
+  var totR=0,totM=0,totU=0;
+  var byStage = { sd:{r:0,u:0}, 40:{r:0,u:0}, 30:{r:0,u:0}, 20:{r:0,u:0}, 15:{r:0,u:0}, 10:{r:0,u:0} };
+
+  P.forEach(function(p) {
+    var c = calc(p);
+    totR += c.totR; totU += c.totU;
+    if (c.totM !== null) totM += c.totM;
+    if (p.cyberTier === 'sd' && c.cyberR > 0) { byStage.sd.r += c.cyberR; byStage.sd.u += c.cyberU; }
+    if (p.cyberTier === 40 && c.cyberR > 0)   { byStage[40].r += c.cyberR; byStage[40].u += c.cyberU; }
+    if (p.cyberTier === 30 && c.cyberR > 0)   { byStage[30].r += c.cyberR; byStage[30].u += c.cyberU; }
+    if (p.cyberTier === 20 && c.cyberR > 0)   { byStage[20].r += c.cyberR; byStage[20].u += c.cyberU; }
+    if (p.cyberTier === 15 && c.cyberR > 0)   { byStage[15].r += c.cyberR; byStage[15].u += c.cyberU; }
+    if (p.cyberTier === 10 && c.cyberR > 0)   { byStage[10].r += c.cyberR; byStage[10].u += c.cyberU; }
+  });
+  var mp  = totR > 0 ? totM/totR*100 : 0;
+  var gap = totR - OBJETIVO;
+
+  document.getElementById('s-rev').textContent = '$' + (totR/1e6).toFixed(2) + 'M';
+  document.getElementById('s-mgn').textContent = '$' + (totM/1e6).toFixed(2) + 'M';
+  document.getElementById('s-mp').textContent  = mp.toFixed(1) + '%';
+  document.getElementById('s-u').textContent   = totU.toLocaleString('es-CL');
+  var gEl = document.getElementById('s-gap');
+  if (gap >= 0) { gEl.textContent = '+$'+(gap/1e6).toFixed(2)+'M'; gEl.className='val green'; }
+  else          { gEl.textContent = '−$'+(Math.abs(gap)/1e6).toFixed(2)+'M'; gEl.className='val red'; }
+
+  function pill(id, r, u) {
+    var el = document.getElementById(id);
+    var base = el.textContent.split('—')[0] + '—';
+    el.textContent = el.textContent.replace(/\$.*/, '') ;
+    var parts = el.textContent.split('—');
+    el.textContent = parts[0] + '— $' + (r/1e6).toFixed(2) + 'M | ' + u + 'u';
+  }
+  pill('s-sd', byStage.sd.r,   byStage.sd.u);
+  pill('s-40', byStage[40].r,  byStage[40].u);
+  pill('s-30', byStage[30].r,  byStage[30].u);
+  pill('s-20', byStage[20].r,  byStage[20].u);
+  pill('s-15', byStage[15].r,  byStage[15].u);
+  pill('s-10', byStage[10].r,  byStage[10].u);
+
+  // Footer (visible only)
+  var vis = P.filter(function(p){ return visibleIds.indexOf(p.id) >= 0; });
+  var vS=0,vCyU=0,vCyR=0,vTotR=0,vTotM=0;
+  vis.forEach(function(p) {
+    vS += p.stock;
+    var c = calc(p);
+    vCyU+=c.cyberU; vCyR+=c.cyberR;
+    vTotR+=c.totR;
+    if (c.totM!==null) vTotM+=c.totM;
+  });
+  var vMp = vTotR > 0 ? vTotM/vTotR*100 : 0;
+  document.getElementById('f-lbl').textContent  = 'TOTAL (' + vis.length + ' productos)';
+  document.getElementById('f-stk').textContent  = vS.toLocaleString('es-CL');
+  document.getElementById('f-uea').textContent  = vEaU > 0 ? vEaU : '—';
+  document.getElementById('f-ueac').textContent = vEaU > 0 ? vEaU : '—';
+  document.getElementById('f-ucy').textContent  = vCyU > 0 ? vCyU : '—';
+  document.getElementById('f-ucy2').textContent = vCyU > 0 ? vCyU : '—';
+  document.getElementById('f-rea').textContent  = vEaR  > 0 ? '$'+Math.round(vEaR).toLocaleString('es-CL') : '—';
+  document.getElementById('f-rcy').textContent  = vCyR  > 0 ? '$'+Math.round(vCyR).toLocaleString('es-CL') : '—';
+  document.getElementById('f-rt').textContent   = vTotR > 0 ? '$'+Math.round(vTotR).toLocaleString('es-CL') : '—';
+  document.getElementById('f-mp').textContent   = vMp > 0 ? vMp.toFixed(1)+'%' : '—';
+}
+
+// ─── Update single row ────────────────────────────────────────────────────────
+function updateRow(id) {
+  var p  = P[id];
+  var c  = calc(p);
+  var tr = document.querySelector('tr[data-id="' + id + '"]');
+  if (!tr) { refreshTotals(); return; }
+
+  tr.className = rowClass(p);
+
+  // Tier select
+  var sel = tr.querySelector('select.tsel');
+  if (sel) sel.value = String(p.cyberTier || '');
+
+  var tds = tr.querySelectorAll('td');
+  // 0-11: producto cols, 12: Tier, 13: ST%Cyber, 14: UdsCyber, 15: RevCyber, 16: RevTotal, 17: Mrg%
+  tds[14].innerHTML = c.cyberU > 0 ? c.cyberU : '<span class="dash">—</span>';
+  tds[15].innerHTML = c.cyberR > 0 ? '<span class="rev">'+clp(c.cyberR)+'</span>' : '<span class="dash">—</span>';
+  tds[16].innerHTML = c.totR   > 0 ? '<span class="rev" style="font-size:12px">'+clp(c.totR)+'</span>' : '<span class="dash">—</span>';
+  tds[17].innerHTML = (c.totMp!==null && c.totR>0)
+    ? '<span class="'+mpCls(c.totMp)+'">'+c.totMp.toFixed(1)+'%</span>'
+    : '<span class="dash">—</span>';
+
+  refreshTotals();
+}
+
+// ─── Event handlers ───────────────────────────────────────────────────────────
+function setCyberTier(id, val) {
+  var p = P[id];
+  p.cyberTier = val === '' ? 0 : (val === 'sd' ? 'sd' : parseInt(val));
+  if (p.cyberTier) {
+    if (p.cyberST === 0) {
+      if      (p.cyberTier === 40) p.cyberST = 50;
+      else if (p.cyberTier === 30) p.cyberST = 40;
+      else if (p.cyberTier === 20) p.cyberST = 15;
+      else if (p.cyberTier === 15) p.cyberST = 12;
+      else if (p.cyberTier === 10 || p.cyberTier === 'sd') p.cyberST = 10;
+    }
+  } else {
+    p.cyberST = 0;
+  }
+  saveLS();
+  setTimeout(function(){ updateRow(id); }, 0);
+}
+function setCyberST(id, val) {
+  P[id].cyberST = Math.min(100, Math.max(0, val||0));
+  saveLS();
+  setTimeout(function(){ updateRow(id); }, 0);
+}
+function setEADcto(id, val) {
+  var p = P[id];
+  var newDcto = val === '' ? 0 : (val === 'sd' ? 0 : parseInt(val));
+  var cyberDcto = (!p.cyberTier || p.cyberTier === 'sd') ? 0 : (parseInt(p.cyberTier) || 0);
+  // EA discount must be >= Cyber tier discount
+  if (cyberDcto > 0 && newDcto < cyberDcto) {
+    p.eaDcto = p.cyberTier;
+  } else {
+    p.eaDcto = val === '' ? 0 : (val === 'sd' ? 'sd' : parseInt(val));
+  }
+  saveLS();
+  setTimeout(function(){ updateRow(id); }, 0);
+}
+
+// ─── Filters ─────────────────────────────────────────────────────────────────
+function applyFilters() {
+  var s  = document.getElementById('search').value.toLowerCase();
+  var ft = document.getElementById('ftipo').value;
+  var fi = document.getElementById('ftier').value;
+  var fs = parseInt(document.getElementById('fstock').value) || 0;
+  visibleIds = P.filter(function(p) {
+    var matchTier = !fi
+      || (fi === '0'  && !p.cyberTier)
+      || (fi === 'sd' && p.cyberTier === 'sd')
+      || (fi === '10' && p.cyberTier === 10)
+      || (fi === '15' && p.cyberTier === 15)
+      || (fi === '20' && p.cyberTier === 20)
+      || (fi === '30' && p.cyberTier === 30)
+      || (fi === '40' && p.cyberTier === 40);
+    return (!s  || p.title.toLowerCase().indexOf(s) >= 0)
+        && (!ft || p.tipo === ft)
+        && matchTier
+        && (p.stock >= fs);
+  }).map(function(p){ return p.id; });
+  renderTable();
+}
+
+// ─── Bulk actions ─────────────────────────────────────────────────────────────
+function bulkST() {
+  var tier = prompt('Tier a modificar (sd, 10, 15, 20, 30, 40):');
+  if (!tier) return;
+  var st = prompt('Sell-through % para tier "' + tier + '":');
+  if (st === null) return;
+  var stVal = Math.min(100, Math.max(0, parseFloat(st)||0));
+  P.forEach(function(p) {
+    if (tier === 'sd' && p.cyberTier === 'sd') p.cyberST = stVal;
+    else if (parseInt(tier) === p.cyberTier)   p.cyberST = stVal;
+  });
+  saveLS(); renderTable();
+}
+function clearAll() {
+  if (!confirm('Limpiar TODOS los tiers y sell-throughs?')) return;
+  P.forEach(function(p) { p.cyberTier=0; p.cyberST=0; });
+  try { localStorage.removeItem(LS_KEY); } catch(e) {}
+  renderTable();
+}
+
+// ─── Export CSV ───────────────────────────────────────────────────────────────
+function exportCSV() {
+  var lines = ['Producto,Tipo,Stock,Uds60d,Uds30d,Uds15d,PrecioPublico,PrecioNeto,CostoNeto,Margen%,MaxDcto,Uds2025,'
+    + 'TierCyber,ST_Cyber%,UdsCyber,RevCyber,'
+    + 'RevTotal,MargenTotal,MargenTotal%'];
+  P.forEach(function(p) {
+    var c = calc(p);
+    lines.push([
+      '"'+p.title+'"', '"'+p.tipo+'"', p.stock, p.uds60d, p.uds30d, p.uds15d, p.precioPubl, p.precioNeto, p.costoNeto,
+      p.margenPct!==null?p.margenPct:'', p.maxDcto, p.uds25,
+      p.cyberTier||'', p.cyberST, c.cyberU, Math.round(c.cyberR),
+      Math.round(c.totR),
+      c.totM!==null?Math.round(c.totM):'',
+      c.totMp!==null?c.totMp.toFixed(1):''
+    ].join(','));
+  });
+  var blob = new Blob(['﻿'+lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'cyber_2026_plan.csv'; a.click();
+}
+
+// ─── Export XLSX ─────────────────────────────────────────────────────────────
+function exportXLSXCombined() {
+  var rows = P.filter(function(p) {
+    return p.cyberTier && (p.cyberTier === 'sd' || typeof p.cyberTier === 'number');
+  });
+  if (!rows.length) { alert('No hay productos con Tier asignado.'); return; }
+  var wsData = [
+    ['Descuentos Cyber — 29 Mayo al 3 Jun 2026'],
+    [],
+    ['Producto', 'SKU', 'Tipo', 'Precio Público', 'Descuento %', 'Precio con Descuento']
+  ];
+  rows.forEach(function(p) {
+    var dcto       = (p.cyberTier === 'sd' || !p.cyberTier) ? 0 : p.cyberTier;
+    var precioDcto = Math.floor(p.precioPubl * (1 - dcto / 100) / 10) * 10;
+    wsData.push([p.title, p.skus || '', p.tipo, p.precioPubl, dcto / 100, precioDcto]);
+  });
+  var ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']   = [{ wch: 45 }, { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 18 }];
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+  var range = XLSX.utils.decode_range(ws['!ref']);
+  for (var r = 3; r <= range.e.r; r++) {
+    var cD = XLSX.utils.encode_cell({ r: r, c: 3 });
+    var cE = XLSX.utils.encode_cell({ r: r, c: 4 });
+    var cF = XLSX.utils.encode_cell({ r: r, c: 5 });
+    if (ws[cD]) ws[cD].z = '#,##0';
+    if (ws[cE]) ws[cE].z = '0%';
+    if (ws[cF]) ws[cF].z = '#,##0';
+  }
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Cyber 29 Mayo');
+  XLSX.writeFile(wb, 'Descuentos_Cyber2026.xlsx');
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+renderTable();
+</script>
+</body>
+</html>
